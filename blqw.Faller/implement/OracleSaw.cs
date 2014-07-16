@@ -309,25 +309,25 @@ namespace blqw
             switch (method.Name)
             {
                 case "Trim":
-                    return string.Concat("ltrim(rtrim(", args[0].ToSql(), "))");
+                    return string.Concat("ltrim(rtrim(", target.ToSql(), "))");
                 case "TrimEnd":
-                    return string.Concat("rtrim(", args[0].ToSql(), ")");
+                    return string.Concat("rtrim(", target.ToSql(), ")");
                 case "TrimStart":
-                    return string.Concat("ltrim(", args[0].ToSql(), ")");
+                    return string.Concat("ltrim(", target.ToSql(), ")");
                 case "IsNullOrWhiteSpace":
                     if (args.Length == 0)
                     {
                         return null;
                     }
                     var sql = args[0].ToSql();
-                    return string.Concat("(", sql, " IS NULL OR ltrim(rtrim(", sql, ")) == '')");
+                    return string.Concat(sql, " IS NULL OR ltrim(rtrim(", sql, ")) == ''");
                 case "IsNullOrEmpty":
                     if (args.Length == 0)
                     {
                         return null;
                     }
                     sql = args[0].ToSql();
-                    return string.Concat("(", sql, " IS NULL OR ", sql, " == '')");
+                    return string.Concat(sql, " IS NULL OR ", sql, " == ''");
                 case "ToString":
                     return target.ToSql();
                 default:

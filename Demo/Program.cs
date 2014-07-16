@@ -12,6 +12,7 @@ namespace Demo
 
         static void Main(string[] args)
         {
+            Where<User>(u => (SqlExpr)"rownum < 10" && u.ID > 10);
             Columns<User>(u => new { row_id = (SqlExpr)"rownum" });
             Set(() => new User { ID = (SqlExpr)"rownum" });
             OrderBy<User>(u => (SqlExpr)"rownum", false);

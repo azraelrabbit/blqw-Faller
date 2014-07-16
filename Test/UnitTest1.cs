@@ -61,10 +61,16 @@ namespace Test
             Where("CAST(a.ID AS NVARCHAR2(100)) = :auto_p0", u => u.ID.ToString() == id);
 
             //处理时间类型
+            Where("a.BIRTHDAY < SYSDATE", u => u.Birthday < DateTime.Now);
             Where("CAST(a.BIRTHDAY AS NVARCHAR2(100)) = CAST(SYSDATE AS NVARCHAR2(100))", u => u.Birthday.ToString() == DateTime.Now.ToString());
             Where("TO_CHAR(a.BIRTHDAY,'HHmiss') = TO_CHAR(SYSDATE,'HHmiss')", u => u.Birthday.ToString("HHmmss") == DateTime.Now.ToString("HHmmss"));
             Where("TO_CHAR(a.BIRTHDAY,'yyyy-MM-dd') = :auto_p0", u => u.Birthday.ToShortDateString() == date.ToShortDateString());
             Where("EXTRACT(DAY FROM a.BIRTHDAY) = 1", u => u.Birthday.Day == 1);
+
+
+
+            Where("ltrim(rtrim(a.NAME)) = :auto_p0", u => u.Name.Trim() == "");
+            Where("a.NAME IS NULL OR a.NAME == ''", u => string.IsNullOrEmpty(u.Name));
 
             //组合表达式
             Where("((a.ID IN (1, 2, 3, 4, 5) AND (a.NAME LIKE '%' || :auto_p0 || '%' OR a.NAME IS NULL)) AND BITAND(a.ID, 4) = 4) AND a.BIRTHDAY < SYSDATE",
@@ -72,6 +78,7 @@ namespace Test
                    (!u.Name.Contains("a") == false || u.Name == null) &&
                    (u.ID & 4) == 4 &&
                    u.Birthday < DateTime.Now);
+
 
         }
 
@@ -135,6 +142,8 @@ namespace Test
             Set("ID = rownum", () => new User { ID = (SqlExpr)"rownum" });
             OrderBy("rownum DESC", u => (SqlExpr)"rownum", false);
             Where("a.ID = rownum", u => u.ID == (SqlExpr)"rownum");
+            Where("rownum < 10", u => (SqlExpr)"rownum < 10");
+            Where("rownum < 10 AND a.ID > 10", u => (SqlExpr)"rownum < 10" && u.ID > 10);
         }
     }
 }
