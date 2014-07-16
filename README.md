@@ -1,4 +1,30 @@
 这是一个轻量级的表达式树解析框架  
+设计初衷是可以嵌入到任何项目或者现成的ORM中
+因为他不和任何其他组件耦合
+不同数据库仅需要重新实现ISaw接口即可
+```csharp
+  public interface ISaw
+  {
+    string BinaryOperator(string left, BinaryOperatorType @operator, string right);
+    string Contains(bool not, string element, string[] array);
+    
+    string AddObject(object obj, ICollection<DbParameter> parameters);
+    string AddNumber(IConvertible number, ICollection<DbParameter> parameters);
+    string AddBoolean(bool value, ICollection<DbParameter> parameters);
+    string AddTimeNow(ICollection<DbParameter> parameters);
+    
+    string GetTable(Type type, string alias);
+    string GetColumn(string table, MemberInfo member);
+    string GetColumn(string columnName, string alias);
+    
+    string CallMethod(MethodInfo method, SawDust target, SawDust[] args);
+    
+    string OrderBy(string sql, bool asc);
+    
+    string UpdateSet(string column, string value);
+  }
+```
+
 
 2014.07.16
 单元测试已经完成了
