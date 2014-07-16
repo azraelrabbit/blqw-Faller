@@ -195,49 +195,102 @@ namespace blqw
             return "SYSDATE";
         }
 
-        public string CallMethod(System.Reflection.MethodInfo method, SawDust target, SawDust[] args)
+        public string CallMethod(MethodInfo method, SawDust target, SawDust[] args)
         {
-            switch (method.Name)
+            string sql = null;
+            switch (Type.GetTypeCode(method.ReflectedType))
             {
-                case "ToString":
-                    if (target.Value is DateTime && args.Length > 1 && args[0].Value is string)
-                    {
-                        return DateTimeToString(target.ToSql(), (string)args[0].Value);
-                    }
-                    return string.Concat("CAST(", target.ToSql(), " AS NVARCHAR2(2000))");
-                case "ToShortTimeString":
-                    return DateTimeToString(target.ToSql(), "HH:mi");
-                case "ToShortDateString":
-                    return DateTimeToString(target.ToSql(), "yyyy-MM-dd");
-                case "Parse":
-                    switch (Type.GetTypeCode(method.ReflectedType))
-                    {
-                        case TypeCode.Char:
-                            return string.Concat("CAST( ", args[0].ToSql(), "AS NVARCHAR(1))");
-                        case TypeCode.String:
-                            return string.Concat("CAST( ", args[0].ToSql(), "AS NVARCHAR(2000))");
-                        case TypeCode.DateTime:
-                            return string.Concat("CAST( ", args[0].ToSql(), "AS NVARCHAR(2000))");
-                        case TypeCode.Byte:
-                        case TypeCode.Decimal:
-                        case TypeCode.Double:
-                        case TypeCode.Int16:
-                        case TypeCode.Int32:
-                        case TypeCode.Int64:
-                        case TypeCode.SByte:
-                        case TypeCode.Single:
-                        case TypeCode.UInt16:
-                        case TypeCode.UInt32:
-                        case TypeCode.UInt64:
-                            return string.Concat("CAST( ", args[0].ToSql(), "AS NUMBER)");
-                        default:
-                            break;
-                    }
+                case TypeCode.Char:
+                    sql = CallCharMethod(method, target, args);
+                    break;
+                case TypeCode.String:
+                    sql = CallStringMethod(method, target, args);
+                    break;
+                case TypeCode.DateTime:
+                    sql = CallDateTimeMethod(method, target, args);
+                    break;
+                case TypeCode.Byte:
+                case TypeCode.Decimal:
+                case TypeCode.Double:
+                case TypeCode.Int16:
+                case TypeCode.Int32:
+                case TypeCode.Int64:
+                case TypeCode.SByte:
+                case TypeCode.Single:
+                case TypeCode.UInt16:
+                case TypeCode.UInt32:
+                case TypeCode.UInt64:
+                    sql = CallNumberMethod(method, target, args);
                     break;
                 default:
                     break;
             }
-            throw new NotSupportedException("无法解释方法:" + method.ToString());
+            if (sql == null)
+            {
+                throw new NotSupportedException("无法解释方法:" + method.ToString());
+            }
+            return sql;
+        }
+
+        private string CallNumberMethod(MethodInfo method, SawDust target, SawDust[] args)
+        {
+            switch (method.Name)
+            {
+                case "Parse":
+                    if (args.Length <= 0)
+                    {
+                        return null;
+                    }
+                    return string.Concat("CAST( ", args[0].ToSql(), "AS NUMBER)");
+                case "ToString":
+                    return string.Concat("CAST(", target.ToSql(), " AS NVARCHAR2(100))");
+                default:
+                    break;
+            }
+            return null;
+        }
+
+        private string CallDateTimeMethod(MethodInfo method, SawDust target, SawDust[] args)
+        {
+            switch (method.Name)
+            {
+                case "Parse":
+                    if (args.Length == 0)
+                    {
+                        return null;
+                    }
+                    return string.Concat("CAST( ", args[0].ToSql(), "AS NVARCHAR(2000))");
+                case "ToString":
+                    if (args.Length > 0 && args[0].Value is string)
+                    {
+                        var format = ((string)args[0].Value).Replace("m", "mi").Replace("mimi", "mi");
+                        return string.Concat("TO_CHAR(", target.ToSql(), ",'", format, "')");
+                    }
+                    return string.Concat("CAST(", target.ToSql(), " AS NVARCHAR2(100))");
+                case "ToShortTimeString":
+                    return string.Concat("TO_CHAR(", target.ToSql(), ",'HH:mi')");
+                case "ToShortDateString":
+                    return string.Concat("TO_CHAR(", target.ToSql(), ",'yyyy-MM-dd')");
+                case "get_Year":
+                    return string.Concat("EXTRACT(YEAR FROM ", target.ToSql(), ")");
+                case "get_Month":
+                    return string.Concat("EXTRACT(MONTH FROM ", target.ToSql(), ")");
+                case "get_Day":
+                    return string.Concat("EXTRACT(DAY FROM ", target.ToSql(), ")");
+                case "get_Hour":
+                    return string.Concat("EXTRACT(HOUR FROM ", target.ToSql(), ")");
+                case "get_Minute":
+                    return string.Concat("EXTRACT(MINUTE FROM ", target.ToSql(), ")");
+                case "get_Second":
+                    return string.Concat("EXTRACT(SECOND FROM ", target.ToSql(), ")");
+                default:
+                    break;
+            }
+            if (method.Name == "Parse")
+            {
+                return string.Concat("CAST( ", args[0].ToSql(), "AS NVARCHAR(2000))");
+            }
+            return null;
         }
 
         private string DateTimeToString(string datetime, string format)
@@ -245,6 +298,58 @@ namespace blqw
             format = format.Replace("m", "mi").Replace("mimi", "mi");
             return string.Concat("TO_CHAR(", datetime, ",'", format, "')");
         }
+
+        private string CallStringMethod(MethodInfo method, SawDust target, SawDust[] args)
+        {
+
+            switch (method.Name)
+            {
+                case "Trim":
+                    return string.Concat("ltrim(rtrim(", args[0].ToSql(), "))");
+                case "TrimEnd":
+                    return string.Concat("rtrim(", args[0].ToSql(), ")");
+                case "TrimStart":
+                    return string.Concat("ltrim(", args[0].ToSql(), ")");
+                case "IsNullOrWhiteSpace":
+                    if (args.Length == 0)
+                    {
+                        return null;
+                    }
+                    var sql = args[0].ToSql();
+                    return string.Concat("(", sql, " IS NULL OR ltrim(rtrim(", sql, ")) == '')");
+                case "IsNullOrEmpty":
+                    if (args.Length == 0)
+                    {
+                        return null;
+                    }
+                    sql = args[0].ToSql();
+                    return string.Concat("(", sql, " IS NULL OR ", sql, " == '')");
+                case "ToString":
+                    return target.ToSql();
+                default:
+                    break;
+            }
+            return null;
+        }
+
+        private string CallCharMethod(MethodInfo method, SawDust target, SawDust[] args)
+        {
+            switch (method.Name)
+            {
+                case "Parse":
+                    if (args.Length == 0)
+                    {
+                        return null;
+                    }
+                    return string.Concat("CAST( ", args[0].ToSql(), "AS NVARCHAR(1))");
+                case "ToString":
+                    return string.Concat("CAST( ", target.ToSql(), "AS NVARCHAR(1))");
+                default:
+                    break;
+            }
+            return null;
+        }
+
 
 
         public string OrderBy(string sql, bool asc)

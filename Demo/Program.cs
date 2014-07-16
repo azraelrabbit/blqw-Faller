@@ -9,10 +9,33 @@ namespace Demo
 {
     class Program
     {
+
+
+        static void AAA(Expression<Func<User, string>> expr)
+        {
+            var mexpr = (MethodCallExpression)expr.Body;
+            if (mexpr.Object != null)
+            {
+                var name = mexpr.Method.Name;
+                var args = mexpr.Method.GetParameters().Select(it => it.ParameterType).ToArray();
+                var method = mexpr.Object.Type.GetMethod(name, args);
+                Console.WriteLine(method.ReflectedType);
+            }
+            else
+            {
+                Console.WriteLine(mexpr.Method.ReflectedType);
+            }
+        }
+
+        const string SSSS = "a";
         static void Main(string[] args)
         {
+            AAA(u => u.Birthday.ToString());
+            AAA(u => int.MaxValue.ToString());
+            AAA(u => SSSS.ToString());
+            AAA(u => new string('a',1).ToString());
 
-            Where<User>(u => u.Name.Contains('a'));
+            Where<User>(u => u.Birthday.Day == 1);
             //OrderBy<User>(u => new { u.Name, u.ID });
             //OrderBy<User>(u => new { u.Name, u.ID });
             //OrderBy<User>(u => u.Name);

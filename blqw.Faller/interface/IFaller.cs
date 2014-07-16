@@ -8,9 +8,9 @@ namespace blqw
 {
     public interface IFaller
     {
-        string ToWhere(ISaw provider);
-        string ToOrderBy(ISaw provider, bool asc);
-        string ToSet(ISaw provider);
+        string ToWhere(ISaw saw);
+        string ToOrderBy(ISaw saw, bool asc);
+        string ToSet(ISaw saw);
         ICollection<DbParameter> Parameters { get; }
     }
 }

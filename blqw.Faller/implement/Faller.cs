@@ -14,7 +14,7 @@ namespace blqw
         #region 字段
         private static readonly MemberInfo _TimeNow = typeof(DateTime).GetProperty("Now");
         private LambdaExpression _lambda;
-        private ISaw _provider;
+        private ISaw _saw;
         private bool _unaryNot;
         private string _sql;
         private object _object;
@@ -27,17 +27,17 @@ namespace blqw
             Parameters = new List<DbParameter>();
         }
 
-        public string ToWhere(ISaw provider)
+        public string ToWhere(ISaw saw)
         {
-            _provider = provider;
+            _saw = saw;
             Initialization();
             return ParseToSql(_lambda.Body);
         }
 
         public string ToOrderBy(ISaw provider, bool asc)
         {
-            _provider = provider;
-            _provider = provider;
+            _saw = provider;
+            _saw = provider;
             Initialization();
             var expr = _lambda.Body;
             var newExpr = expr as NewExpression;
@@ -101,7 +101,7 @@ namespace blqw
             switch (left)
             {
                 case DustType.Sql:
-                    _sql = _provider.BinaryOperator(_sql, opt, right.ToSql());
+                    _sql = _saw.BinaryOperator(_sql, opt, right.ToSql());
                     return DustType.Sql;
                 case DustType.Number:
                     //如果左右都是 Number常量
@@ -110,7 +110,7 @@ namespace blqw
                         //直接计算结果
                         return Math(expr, ((IConvertible)right.Value), ((IConvertible)right.Value));
                     }
-                    _sql = _provider.BinaryOperator(AddNumber(_object), opt, right.ToSql());
+                    _sql = _saw.BinaryOperator(AddNumber(_object), opt, right.ToSql());
                     return DustType.Sql;
                 case DustType.Boolean:
                     //如果左边是布尔值常量,虽然这种写法很操蛋
@@ -121,7 +121,7 @@ namespace blqw
                     var unaryExpr = UnaryExpression.IsTrue(expr.Right);
                     return Parse(unaryExpr);
                 case DustType.Object:
-                    _sql = _provider.BinaryOperator(AddObject(_object), opt, right.ToSql());
+                    _sql = _saw.BinaryOperator(AddObject(_object), opt, right.ToSql());
                     return DustType.Sql;
                 case DustType.Undefined:
                 case DustType.Array:
@@ -144,13 +144,17 @@ namespace blqw
             {
                 //命名参数,返回 表别名.列名
                 var index = _lambda.Parameters.IndexOf(para);
-                _sql = _provider.GetColumnName(GetAlias(index), expr.Member);
+                _sql = _saw.GetColumnName(GetAlias(index), expr.Member);
+                if (expr.Type == typeof(bool))
+                {
+                    _sql = _saw.BinaryOperator(_sql, BinaryOperatorType.Equal, AddBoolean(true));
+                }
                 return DustType.Sql;
             }
             else if (object.ReferenceEquals(expr.Member, _TimeNow))
             {
                 //如果是DateTime.Now 返回数据库的当前时间表达式
-                _sql = _provider.AddTimeNow(Parameters);
+                _sql = _saw.AddTimeNow(Parameters);
                 //如果数据库没有相应的表达式,则使用C#中的当前时间
                 if (_sql == null)
                 {
@@ -165,9 +169,26 @@ namespace blqw
                 // expr.Expression 不等于 null 说明是实例成员,否则是静态成员
                 if (expr.Expression != null)
                 {
-                    Parse(expr.Expression); //实例成员,必然可以得到一个对象
-                    target = _object;
-                    if (target == null) Throw(expr);
+                    var dusttype = Parse(expr.Expression);
+                    if (dusttype == DustType.Sql) //实例成员,必然可以得到一个对象
+                    {
+                        if (expr.Member is PropertyInfo)
+                        {
+                            var method = ((PropertyInfo)expr.Member).GetGetMethod();
+                            if (method == null)
+                            {
+                                Throw(expr);
+                            }
+                            _sql = _saw.CallMethod(method, new SawDust(this, dusttype, _sql), new SawDust[0]);
+                            return DustType.Sql;
+                        }
+                    }
+                    else
+                    {
+                        target = _object;
+                        if (target == null) 
+                            Throw(expr);
+                    }
                 }
                 //判断 Member 是属性还是字段,使用反射,得到值
                 var p = expr.Member as PropertyInfo;
@@ -214,7 +235,7 @@ namespace blqw
                         }
                         else if (type != DustType.Sql)
                         {
-                            _sql = _provider.BinaryOperator(GetValueSql(_object), BinaryOperatorType.NotEqual, AddBoolean(_unaryNot));
+                            _sql = _saw.BinaryOperator(GetValueSql(_object), BinaryOperatorType.NotEqual, AddBoolean(_unaryNot));
                         }
                         return DustType.Sql;
                     }
@@ -231,7 +252,7 @@ namespace blqw
                     }
                     else if (type != DustType.Sql)
                     {
-                        _sql = _provider.BinaryOperator(GetValueSql(_object), BinaryOperatorType.Equal, AddBoolean(_unaryNot));
+                        _sql = _saw.BinaryOperator(GetValueSql(_object), BinaryOperatorType.Equal, AddBoolean(_unaryNot));
                     }
                     return DustType.Sql;
                 case ExpressionType.Convert:
@@ -261,14 +282,20 @@ namespace blqw
                 return Result(_object);
             }
 
-            if (object.ReferenceEquals(expr.Method.ReflectedType, typeof(string)))
+            var method = expr.Method;
+            if (method.ReflectedType == typeof(object) && expr.Object != null)
             {
-                _sql = ParseStringMethod(expr.Method, target, args);
+                method = expr.Object.Type.GetMethod(expr.Method.Name, expr.Method.GetParameters().Select(it => it.ParameterType).ToArray());
+            }
+
+            if (object.ReferenceEquals(method.ReflectedType, typeof(string)))
+            {
+                _sql = ParseStringMethod(method, target, args);
                 return DustType.Sql;
             }
-            else if (object.ReferenceEquals(expr.Method.ReflectedType, typeof(System.Linq.Enumerable)))
+            else if (object.ReferenceEquals(method.ReflectedType, typeof(System.Linq.Enumerable)))
             {
-                if (expr.Method.Name == "Contains"
+                if (method.Name == "Contains"
                     && args.Length == 2)
                 {
                     if (args[0].Type == DustType.Array
@@ -285,19 +312,19 @@ namespace blqw
                         {
                             array = ((IEnumerable)args[0].Value).Cast<object>().Select(GetValueSql).ToArray();
                         }
-                        _sql = _provider.Contains(_unaryNot, element, array);
+                        _sql = _saw.Contains(_unaryNot, element, array);
                         return DustType.Sql;
                     }
                     else if (args[0].Type == DustType.Sql
                     && args[1].Type == DustType.String)
                     {
-                        _sql = ParseStringMethod(expr.Method, args[0], new SawDust[] { args[1] });
+                        _sql = ParseStringMethod(method, args[0], new SawDust[] { args[1] });
                         return DustType.Sql;
                     }
                 }
             }
 
-            _sql = _provider.CallMethod(expr.Method, target, args);
+            _sql = _saw.CallMethod(method, target, args);
             return DustType.Sql;
         }
 
@@ -440,21 +467,21 @@ namespace blqw
                 {
                     case "StartsWith":
                         if (_unaryNot)
-                            return _provider.BinaryOperator(target.ToSql(), BinaryOperatorType.NotStartWith, args[0].ToSql());
-                        return _provider.BinaryOperator(target.ToSql(), BinaryOperatorType.StartWith, args[0].ToSql());
-                    case "EndWith":
+                            return _saw.BinaryOperator(target.ToSql(), BinaryOperatorType.NotStartWith, args[0].ToSql());
+                        return _saw.BinaryOperator(target.ToSql(), BinaryOperatorType.StartWith, args[0].ToSql());
+                    case "EndsWith":
                         if (_unaryNot)
-                            return _provider.BinaryOperator(target.ToSql(), BinaryOperatorType.NotEndWith, args[0].ToSql());
-                        return _provider.BinaryOperator(target.ToSql(), BinaryOperatorType.EndWith, args[0].ToSql());
+                            return _saw.BinaryOperator(target.ToSql(), BinaryOperatorType.NotEndWith, args[0].ToSql());
+                        return _saw.BinaryOperator(target.ToSql(), BinaryOperatorType.EndWith, args[0].ToSql());
                     case "Contains":
                         if (_unaryNot)
-                            return _provider.BinaryOperator(target.ToSql(), BinaryOperatorType.NotContains, args[0].ToSql());
-                        return _provider.BinaryOperator(target.ToSql(), BinaryOperatorType.Contains, args[0].ToSql());
+                            return _saw.BinaryOperator(target.ToSql(), BinaryOperatorType.NotContains, args[0].ToSql());
+                        return _saw.BinaryOperator(target.ToSql(), BinaryOperatorType.Contains, args[0].ToSql());
                     default:
                         break;
                 }
             }
-            return _provider.CallMethod(method, target, args);
+            return _saw.CallMethod(method, target, args);
         }
 
 
@@ -465,17 +492,17 @@ namespace blqw
 
         internal string AddObject(object value)
         {
-            return _provider.AddObject(value, Parameters);
+            return _saw.AddObject(value, Parameters);
         }
 
         internal string AddNumber(object value)
         {
-            return _provider.AddNumber((IConvertible)value, Parameters);
+            return _saw.AddNumber((IConvertible)value, Parameters);
         }
 
         internal string AddBoolean(object value)
         {
-            return _provider.AddBoolean((bool)value, Parameters);
+            return _saw.AddBoolean((bool)value, Parameters);
         }
 
         private void Initialization()
@@ -503,13 +530,13 @@ namespace blqw
                 case DustType.Sql:
                     return _sql;
                 case DustType.Number:
-                    return _provider.AddNumber((IConvertible)_object, Parameters);
+                    return _saw.AddNumber((IConvertible)_object, Parameters);
                 case DustType.Array:
                     break;
                 case DustType.Boolean:
-                    return _provider.AddBoolean((bool)_object, Parameters);
+                    return _saw.AddBoolean((bool)_object, Parameters);
                 case DustType.Object:
-                    return _provider.AddObject(_object, Parameters);
+                    return _saw.AddObject(_object, Parameters);
                 default:
                     break;
             }
@@ -661,11 +688,11 @@ namespace blqw
         {
             if (obj == null || obj is DBNull)
             {
-                return _provider.AddObject(null, Parameters);
+                return _saw.AddObject(null, Parameters);
             }
             else if (obj is bool)
             {
-                return _provider.AddBoolean((bool)obj, Parameters);
+                return _saw.AddBoolean((bool)obj, Parameters);
             }
             var conv = obj as IConvertible;
             if (conv != null)
@@ -673,10 +700,10 @@ namespace blqw
                 var code = conv.GetTypeCode();
                 if (code >= TypeCode.SByte && code <= TypeCode.Decimal)
                 {
-                    return _provider.AddNumber(conv, Parameters);
+                    return _saw.AddNumber(conv, Parameters);
                 }
             }
-            return _provider.AddObject(obj, Parameters);
+            return _saw.AddObject(obj, Parameters);
         }
 
         private DustType Result(object obj)
@@ -715,6 +742,12 @@ namespace blqw
             {
                 return DustType.Array;
             }
+            if (_object is SqlExpr)
+            {
+                _sql = ((SqlExpr)_object).Sql;
+                _object = null;
+                return DustType.Sql;
+            }
             return DustType.Object;
         }
 
@@ -737,7 +770,7 @@ namespace blqw
                     Throw(expr);
                 }
             }
-            return _provider.OrderBy(sqls, asc);
+            return _saw.OrderBy(sqls, asc);
         }
 
         private string ToOrderBy(Expression expr, bool asc)
@@ -746,7 +779,7 @@ namespace blqw
             {
                 Throw(expr);
             }
-            return _provider.OrderBy(_sql, asc);
+            return _saw.OrderBy(_sql, asc);
         }
 
     }
