@@ -13,20 +13,19 @@ namespace blqw
         string BinaryOperator(string left, BinaryOperatorType @operator, string right);
         string Contains(bool not, string element, string[] array);
 
-        string ConcatSqls(params string[] sqls);
-
         string AddObject(object obj, ICollection<DbParameter> parameters);
         string AddNumber(IConvertible number, ICollection<DbParameter> parameters);
         string AddBoolean(bool value, ICollection<DbParameter> parameters);
         string AddTimeNow(ICollection<DbParameter> parameters);
 
-        string GetTableName(Type type, string alias);
-        string GetColumnName(string alias, MemberInfo member);
+        string GetTable(Type type, string alias);
+        string GetColumn(string table, MemberInfo member);
+        string GetColumn(string columnName, string alias);
 
         string CallMethod(MethodInfo method, SawDust target, SawDust[] args);
 
-        string OrderBy(string _sql, bool asc);
+        string OrderBy(string sql, bool asc);
 
-        string OrderBy(string[] sqls, bool asc);
+        string UpdateSet(string column, string value);
     }
 }

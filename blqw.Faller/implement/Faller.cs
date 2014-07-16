@@ -12,6 +12,10 @@ namespace blqw
     public class Faller : IFaller
     {
         #region 字段
+        private const int WHERE = 1;
+        private const int ORDERBY = 2;
+        private const int SET = 3;
+        private const int COLUMNS = 4;
         private static readonly MemberInfo _TimeNow = typeof(DateTime).GetProperty("Now");
         private LambdaExpression _lambda;
         private ISaw _saw;
@@ -19,6 +23,7 @@ namespace blqw
         private string _sql;
         private object _object;
         private int _layer;
+        private int _entry;
         #endregion
 
         public Faller(LambdaExpression expr)
@@ -29,34 +34,132 @@ namespace blqw
 
         public string ToWhere(ISaw saw)
         {
+            _entry = WHERE;
             _saw = saw;
             Initialization();
             return ParseToSql(_lambda.Body);
         }
 
-        public string ToOrderBy(ISaw provider, bool asc)
+        public string ToOrderBy(ISaw saw, bool asc)
         {
-            _saw = provider;
-            _saw = provider;
+            _entry = ORDERBY;
+            _saw = saw;
             Initialization();
             var expr = _lambda.Body;
             var newExpr = expr as NewExpression;
             if (newExpr != null)
             {
-                return ToOrderBy(newExpr.Arguments, asc);
+                return string.Join(", ", newExpr.Arguments.Select(it => _saw.OrderBy(ParseToSql(it), asc)));
             }
             var arrExpr = expr as NewArrayExpression;
             if (arrExpr != null)
             {
-                return ToOrderBy(arrExpr.Expressions, asc);
+                return string.Join(", ", arrExpr.Expressions.Select(it => _saw.OrderBy(ParseToSql(it), asc)));
             }
-            return ToOrderBy(expr, asc);
+            return _saw.OrderBy(ParseToSql(expr), asc);
         }
 
-        public string ToSet(ISaw provider)
+        public string ToSet(ISaw saw)
         {
-            throw new NotImplementedException();
+            _entry = SET;
+            _saw = saw;
+            Initialization();
+            var expr = _lambda.Body as MemberInitExpression;
+            if (expr == null)
+            {
+                Throw(_lambda.Body);
+            }
+            if (expr.Bindings.Count == 0)
+            {
+                return "";
+            }
+            if (expr.Bindings.Count == 1)
+            {
+                return ToSet(expr.Bindings[0]);
+            }
+            return string.Join(", ", expr.Bindings.Select(ToSet));
         }
+
+        public string ToColumns(ISaw saw)
+        {
+            _entry = COLUMNS;
+            _saw = saw;
+            Initialization();
+            var expr = _lambda.Body as NewExpression;
+            if (expr == null || expr.Arguments.Count == 0)
+            {
+                return ToColumnAll();
+            }
+
+            if (expr.Arguments.Count == 1)
+            {
+                return ToColumn(expr.Arguments[0], expr.Members[0]);
+            }
+            else
+            {
+                return string.Join(", ", ToColumns(expr));
+            }
+        }
+
+
+
+
+
+        private IEnumerable<string> ToColumns(NewExpression expr)
+        {
+            var length = expr.Arguments.Count;
+            for (int i = 0; i < length; i++)
+            {
+                var column = expr.Arguments[i];
+                var alias = expr.Members[i];
+                yield return ToColumn(column, alias);
+            }
+        }
+
+        private string ToColumn(Expression column, MemberInfo alias)
+        {
+            var member = column as MemberExpression;
+            if (member != null && member.Member.Name == alias.Name)
+            {
+                return ParseToSql(member);
+            }
+            else
+            {
+                return _saw.GetColumn(ParseToSql(column), alias.Name);
+            }
+        }
+
+        private string ToColumnAll()
+        {
+            var expr = _lambda.Body as ConstantExpression;
+            if (expr == null)
+            {
+                Throw(_lambda.Body);
+            }
+            if (Parse(expr) == DustType.Sql)
+            {
+                return _sql;
+            }
+            if (_object == null)
+            {
+                var length = _lambda.Parameters.Count;
+                if (length > 26)
+                {
+                    throw new NotSupportedException("对象过多");
+                }
+                var columns = new char[length];
+                for (int i = 0; i < length; i++)
+                {
+                    columns[i] = ((char)('a' + i));
+                }
+                return string.Join(".*, ", columns) + ".*";
+            }
+            else
+            {
+                return GetValueSql(_object);
+            }
+        }
+
 
         public ICollection<DbParameter> Parameters { get; private set; }
 
@@ -144,8 +247,8 @@ namespace blqw
             {
                 //命名参数,返回 表别名.列名
                 var index = _lambda.Parameters.IndexOf(para);
-                _sql = _saw.GetColumnName(GetAlias(index), expr.Member);
-                if (expr.Type == typeof(bool))
+                _sql = _saw.GetColumn(GetAlias(index), expr.Member);
+                if (expr.Type == typeof(bool) && _entry == WHERE)
                 {
                     _sql = _saw.BinaryOperator(_sql, BinaryOperatorType.Equal, AddBoolean(true));
                 }
@@ -186,7 +289,7 @@ namespace blqw
                     else
                     {
                         target = _object;
-                        if (target == null) 
+                        if (target == null)
                             Throw(expr);
                     }
                 }
@@ -261,8 +364,17 @@ namespace blqw
                     {
                         if (!object.ReferenceEquals(_object.GetType(), expr.Type))
                         {
-                            _object = Convert.ChangeType(_object, expr.Type);
-                            return Result(_object);
+                            if (_object is string && expr.Type == typeof(SqlExpr))
+                            {
+                                _sql = (string)_object;
+                                _object = null;
+                                return DustType.Sql;
+                            }
+                            else
+                            {
+                                _object = Convert.ChangeType(_object, expr.Type);
+                                return Result(_object);
+                            }
                         }
                     }
                     return type;
@@ -515,7 +627,7 @@ namespace blqw
         {
             if (index > 26)
             {
-                throw new NotSupportedException();
+                throw new NotSupportedException("对象过多");
             }
             return (char)('a' + index) + "";
         }
@@ -536,6 +648,9 @@ namespace blqw
                 case DustType.Boolean:
                     return _saw.AddBoolean((bool)_object, Parameters);
                 case DustType.Object:
+                case DustType.DateTime:
+                case DustType.String:
+                case DustType.Binary:
                     return _saw.AddObject(_object, Parameters);
                 default:
                     break;
@@ -753,33 +868,31 @@ namespace blqw
 
         #endregion
 
-
-        private string ToOrderBy(ICollection<Expression> exps, bool asc)
+        private string ToSet(MemberBinding binding)
         {
-            var length = exps.Count;
-            string[] sqls = new string[length];
-            var i = 0;
-            foreach (var expr in exps)
+            MemberAssignment m = binding as MemberAssignment;
+            if (m == null)
             {
-                if (Parse(expr) == DustType.Sql)
-                {
-                    sqls[i++] = _sql;
-                }
-                else
-                {
-                    Throw(expr);
-                }
+                throw new NotSupportedException("无法解释表达式 => " + m.ToString());
             }
-            return _saw.OrderBy(sqls, asc);
+            var column = _saw.GetColumn(null, m.Member);
+            var value = ParseToSql(m.Expression);
+            return _saw.UpdateSet(column, value);
         }
 
-        private string ToOrderBy(Expression expr, bool asc)
+        private IEnumerable<KeyValuePair<string, string>> ToSets(MemberInitExpression expr)
         {
-            if (Parse(expr) != DustType.Sql)
+            foreach (MemberAssignment it in expr.Bindings)
             {
-                Throw(expr);
+                MemberAssignment m = it as MemberAssignment;
+                if (m == null)
+                {
+                    throw new NotSupportedException("无法解释表达式 => " + expr.Bindings[0].ToString());
+                }
+                var column = _saw.GetColumn(null, m.Member);
+                var value = ParseToSql(m.Expression);
+                yield return new KeyValuePair<string, string>(column, value);
             }
-            return _saw.OrderBy(_sql, asc);
         }
 
     }

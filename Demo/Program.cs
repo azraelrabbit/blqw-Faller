@@ -10,46 +10,23 @@ namespace Demo
     class Program
     {
 
-
-        static void AAA(Expression<Func<User, string>> expr)
-        {
-            var mexpr = (MethodCallExpression)expr.Body;
-            if (mexpr.Object != null)
-            {
-                var name = mexpr.Method.Name;
-                var args = mexpr.Method.GetParameters().Select(it => it.ParameterType).ToArray();
-                var method = mexpr.Object.Type.GetMethod(name, args);
-                Console.WriteLine(method.ReflectedType);
-            }
-            else
-            {
-                Console.WriteLine(mexpr.Method.ReflectedType);
-            }
-        }
-
-        const string SSSS = "a";
         static void Main(string[] args)
         {
-            AAA(u => u.Birthday.ToString());
-            AAA(u => int.MaxValue.ToString());
-            AAA(u => SSSS.ToString());
-            AAA(u => new string('a',1).ToString());
+            Columns<User>(u => new { row_id = (SqlExpr)"rownum" });
+            Set(() => new User { ID = (SqlExpr)"rownum" });
+            OrderBy<User>(u => (SqlExpr)"rownum", false);
+            Where<User>(u => u.ID == (SqlExpr)"rownum");
 
-            Where<User>(u => u.Birthday.Day == 1);
-            //OrderBy<User>(u => new { u.Name, u.ID });
-            //OrderBy<User>(u => new { u.Name, u.ID });
-            //OrderBy<User>(u => u.Name);
+        }
 
-            //Set(() => new User { Name = "aaaa" });
-            //Set(() => new User { Sex = true });
-            //Set(() => new User { ID = 1 });
-
+        static void DemoWhere()
+        {
             Where<User>(u => (u.ID == 1) == false);
             Where<User>(u => (u.ID == 1) == true);
             Where<User>(u => (u.ID == 1) != true);
             Where<User>(u => (u.ID == 1) != false);
 
-            args = new[] { "1", "2", "3", "5" };
+            var args = new[] { "1", "2", "3", "5" };
             object[] arr = { 1, 2, 3, 4, 5 };
             Where<User>(u => u.ID == (int)arr[3]);
 
@@ -77,28 +54,73 @@ namespace Demo
             Where<User>(u => u.Birthday.ToString() == DateTime.Now.ToString());
             DateTime date = new DateTime(2014, 7, 15);
             Where<User>(u => u.Birthday.ToShortDateString() == date.ToShortDateString());
+            Where<User>(u => u.Birthday.Day == 1);
 
             Where<User>(u => !arr.Contains(u.ID) &&
                     (!u.Name.Contains("a") == false || u.Name == null) &&
                     (u.ID & 4) == 4 &&
                     u.Birthday < DateTime.Now);
+        }
 
+        static void DemoSet()
+        {
+            Set(() => new User { Name = "aaaa" });
+            Set(() => new User { Sex = true });
+            Set(() => new User { ID = 1 });
+            Set(() => new User { ID = 1, Name = "bbbb", Sex = false, Birthday = DateTime.Now });
+
+        }
+
+        static void DemoOrderBy()
+        {
+            OrderBy<User>(u => new { u.Name, u.ID }, true);
+            OrderBy<User>(u => new object[] { u.Name, u.ID }, true);
+            OrderBy<User>(u => u.Name, true);
+            OrderBy<User>(u => DateTime.Now, false);
+            OrderBy<User>(u => (SqlExpr)"rownum", false);
+            OrderBy<User>(u => 1, false);
+        }
+
+
+        static void DemoColumns()
+        {
+            Columns<User>(u => null);
+            Columns<User>(u => new { u.Name });
+            Columns<User>(u => new { u.ID, u.Sex });
+            Columns<User>(u => new { UserName = u.Name });
+            Columns<User>(u => new { DateTime = DateTime.Now, X = 1 });
+
+        }
+
+        public static void Columns<T>(Expression<Func<T, object>> expr)
+        {
+            Console.WriteLine("Expr   : " + expr.Body.ToString());
+            Console.WriteLine();
+            var parse = new Faller(expr);
+            var sql = parse.ToColumns(OracleSaw.Instance);
+            Console.WriteLine("Parsed : " + sql);
+            Console.WriteLine(new string('.', Console.BufferWidth - 1));
         }
 
         public static void Set<T>(Expression<Func<T>> expr)
         {
-            Console.WriteLine(expr);
+            Console.WriteLine("Expr   : " + expr.Body.ToString());
+            Console.WriteLine();
+            var parse = new Faller(expr);
+            var sql = parse.ToSet(OracleSaw.Instance);
+            Console.WriteLine("Parsed : " + sql);
+            Console.WriteLine(new string('.', Console.BufferWidth - 1));
         }
 
-        public static void OrderBy<T>(Expression<Func<T, object>> expr)
+        public static void OrderBy<T>(Expression<Func<T, object>> expr, bool asc)
         {
             Console.WriteLine("Expr   : " + expr.Body.ToString());
+            Console.WriteLine("ASC    : " + asc);
             var parse = new Faller(expr);
-            var sql = parse.ToOrderBy(OracleSaw.Instance, true);
+            var sql = parse.ToOrderBy(OracleSaw.Instance, asc);
             Console.WriteLine("Parsed : " + sql);
+            Console.WriteLine(new string('.', Console.BufferWidth - 1));
         }
-
-
 
         public static void Where<T>(Expression<Func<T, bool>> expr)
         {

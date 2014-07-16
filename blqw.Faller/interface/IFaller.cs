@@ -11,6 +11,7 @@ namespace blqw
         string ToWhere(ISaw saw);
         string ToOrderBy(ISaw saw, bool asc);
         string ToSet(ISaw saw);
+        string ToColumns(ISaw saw);
         ICollection<DbParameter> Parameters { get; }
     }
 }

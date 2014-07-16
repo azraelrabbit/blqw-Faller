@@ -91,7 +91,7 @@ namespace blqw
                 case BinaryOperatorType.NotEndWith:
                     return string.Concat(left, " NOT LIKE '%' || ", right);
                 case BinaryOperatorType.BitAnd:
-                    return string.Concat("BITAND(", left, ",", right, ")");
+                    return string.Concat("BITAND(", left, ", ", right, ")");
                 case BinaryOperatorType.BitOr:
                     //(x + y) - BITAND(x, y)
                     return string.Concat("((", left, " + ", right, ") - BITAND(", left, ", ", right, "))");
@@ -121,7 +121,7 @@ namespace blqw
                     sb.Append(flag);
                     sb.Append("(");
                     var jc = Math.Min(1000, count - i);
-                    sb.Append(string.Join(",", array, i, jc));
+                    sb.Append(string.Join(", ", array, i, jc));
                     sb.Append(")");
                 }
                 sb.Append(")");
@@ -129,11 +129,11 @@ namespace blqw
             }
             else if (not)
             {
-                return string.Concat(element, " NOT IN (", string.Join(",", array), ")");
+                return string.Concat(element, " NOT IN (", string.Join(", ", array), ")");
             }
             else
             {
-                return string.Concat(element, " IN (", string.Join(",", array), ")");
+                return string.Concat(element, " IN (", string.Join(", ", array), ")");
             }
         }
 
@@ -143,7 +143,7 @@ namespace blqw
         }
 
 
-        public string GetTableName(Type type, string alias)
+        public string GetTable(Type type, string alias)
         {
             if (alias == null)
             {
@@ -152,20 +152,24 @@ namespace blqw
             return string.Concat(type.Name.ToUpper(), " ", alias);
         }
 
-        public string GetColumnName(string alias, MemberInfo member)
+        public string GetColumn(string table, MemberInfo member)
         {
-            if (alias == null)
+            if (table == null)
             {
                 return member.Name.ToUpper();
             }
-            return string.Concat(alias, ".", member.Name.ToUpper());
+            return string.Concat(table, ".", member.Name.ToUpper());
         }
 
-        public string[] Aliases(IList<ParameterExpression> paramExpr)
+        public string GetColumn(string columnName, string alias)
         {
-            char name = 'a';
-            return paramExpr.Select(it => (name++).ToString()).ToArray();
+            if (alias == null)
+            {
+                return columnName;
+            }
+            return string.Concat(columnName, " ", alias);
         }
+
 
 
         public string AddObject(object value, ICollection<DbParameter> parameters)
@@ -350,23 +354,17 @@ namespace blqw
             return null;
         }
 
-
-
         public string OrderBy(string sql, bool asc)
         {
             return string.Concat(sql, asc ? " ASC" : " DESC");
         }
 
-        public string OrderBy(string[] sqls, bool asc)
+        public string UpdateSet(string column, string value)
         {
-            if (asc)
-            {
-                return string.Join(" ASC,", sqls) + " ASC";
-            }
-            else
-            {
-                return string.Join(" DESC,", sqls) + " DESC";
-            }
+            return string.Concat(column, " = ", value);
         }
+
+
+
     }
 }
