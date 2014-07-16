@@ -12,6 +12,7 @@ namespace Demo
         static void Main(string[] args)
         {
 
+            Where<User>(u => u.Name.Contains('a'));
             //OrderBy<User>(u => new { u.Name, u.ID });
             //OrderBy<User>(u => new { u.Name, u.ID });
             //OrderBy<User>(u => u.Name);

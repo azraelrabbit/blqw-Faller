@@ -269,23 +269,31 @@ namespace blqw
             else if (object.ReferenceEquals(expr.Method.ReflectedType, typeof(System.Linq.Enumerable)))
             {
                 if (expr.Method.Name == "Contains"
-                    && args.Length == 2
-                    && args[0].Type == DustType.Array
-                    && args[1].Type == DustType.Sql)
+                    && args.Length == 2)
                 {
-                    var element = (string)args[1].Value;
-                    string[] array;
-                    var enumerable = args[0].Value as SawDust[];
-                    if (enumerable != null)
+                    if (args[0].Type == DustType.Array
+                    && args[1].Type == DustType.Sql)
                     {
-                        array = enumerable.Select(it => it.ToSql()).ToArray();
+                        var element = (string)args[1].Value;
+                        string[] array;
+                        var enumerable = args[0].Value as SawDust[];
+                        if (enumerable != null)
+                        {
+                            array = enumerable.Select(it => it.ToSql()).ToArray();
+                        }
+                        else
+                        {
+                            array = ((IEnumerable)args[0].Value).Cast<object>().Select(GetValueSql).ToArray();
+                        }
+                        _sql = _provider.Contains(_unaryNot, element, array);
+                        return DustType.Sql;
                     }
-                    else
+                    else if (args[0].Type == DustType.Sql
+                    && args[1].Type == DustType.String)
                     {
-                        array = ((IEnumerable)args[0].Value).Cast<object>().Select(GetValueSql).ToArray();
+                        _sql = ParseStringMethod(expr.Method, args[0], new SawDust[] { args[1] });
+                        return DustType.Sql;
                     }
-                    _sql = _provider.Contains(_unaryNot, element, array);
-                    return DustType.Sql;
                 }
             }
 
@@ -448,9 +456,6 @@ namespace blqw
             }
             return _provider.CallMethod(method, target, args);
         }
-
-
-
 
 
 

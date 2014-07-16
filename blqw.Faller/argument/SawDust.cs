@@ -5,30 +5,16 @@ using System.Text;
 
 namespace blqw
 {
-    [Serializable]
-    public enum DustType
-    {
-        Undefined = 0,
-        Sql = 1,
-        Object = 2,
-        Number = 3,
-        Array = 4,
-        Boolean = 5,
-        DateTime = 6,
-        Binary = 7,
-        String = 8,
-    }
-
     public struct SawDust
     {
-        internal SawDust(Faller parser, DustType type, Object value)
+        internal SawDust(Faller faller, DustType type, Object value)
         {
             Type = type;
             Value = value;
-            Parser = parser;
+            Faller = faller;
         }
 
-        private readonly Faller Parser;
+        private readonly Faller Faller;
 
         public readonly DustType Type;
 
@@ -41,16 +27,16 @@ namespace blqw
                 case DustType.Sql:
                     return (string)Value;
                 case DustType.Number:
-                    return Parser.AddNumber((IConvertible)Value);
+                    return Faller.AddNumber((IConvertible)Value);
                 case DustType.Array:
                     throw new NotImplementedException();
                 case DustType.Boolean:
-                    return Parser.AddBoolean((bool)Value);
+                    return Faller.AddBoolean((bool)Value);
                 case DustType.Object:
                 case DustType.DateTime:
                 case DustType.Binary:
                 case DustType.String:
-                    return Parser.AddObject(Value);
+                    return Faller.AddObject(Value);
                 default:
                     throw new NotImplementedException();
             }
@@ -86,7 +72,7 @@ namespace blqw
                 {
                     return true;
                 }
-                return Value == dust.Value && object.ReferenceEquals(Parser, dust.Parser);
+                return Value == dust.Value && object.ReferenceEquals(Faller, dust.Faller);
             }
             return false;
         }
