@@ -11,7 +11,7 @@ namespace blqw
         {
             Type = type;
             Value = value;
-            Faller = faller;
+            Faller = faller;  
         }
 
         private readonly Faller Faller;
@@ -23,7 +23,7 @@ namespace blqw
         public string ToSql()
         {
             switch (Type)
-            {
+            {  
                 case DustType.Sql:
                     return (string)Value;
                 case DustType.Number:

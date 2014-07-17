@@ -5,7 +5,7 @@ using System.Text;
 
 namespace blqw
 {
-    /// <summary> 二元操作符
+    /// <summary> 二元操作符枚举
     /// </summary>
     [Serializable]
     public enum BinaryOperatorType
