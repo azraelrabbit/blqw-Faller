@@ -12,12 +12,19 @@ namespace Demo
 
         static void Main(string[] args)
         {
+            Program i = null;
+            Console.WriteLine(i as string);
+            Where<User>(u => u.ID.ToString() == "100");
+        }
+
+
+        static void DemoSqlExpr()
+        {
             Where<User>(u => (SqlExpr)"rownum < 10" && u.ID > 10);
             Columns<User>(u => new { row_id = (SqlExpr)"rownum" });
             Set(() => new User { ID = (SqlExpr)"rownum" });
             OrderBy<User>(u => (SqlExpr)"rownum", false);
             Where<User>(u => u.ID == (SqlExpr)"rownum");
-
         }
 
         static void DemoWhere()
@@ -81,7 +88,6 @@ namespace Demo
             OrderBy<User>(u => (SqlExpr)"rownum", false);
             OrderBy<User>(u => 1, false);
         }
-
 
         static void DemoColumns()
         {

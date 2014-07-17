@@ -245,7 +245,7 @@ namespace blqw
                     {
                         return null;
                     }
-                    return string.Concat("CAST( ", args[0].ToSql(), "AS NUMBER)");
+                    return string.Concat("CAST(", args[0].ToSql(), " AS NUMBER)");
                 case "ToString":
                     return string.Concat("CAST(", target.ToSql(), " AS NVARCHAR2(100))");
                 default:

@@ -11,19 +11,288 @@ namespace blqw
 {
     public class Faller : IFaller
     {
-        #region 字段
+
+        #region EntryFlag
         private const int WHERE = 1;
         private const int ORDERBY = 2;
         private const int SET = 3;
         private const int COLUMNS = 4;
+        #endregion
+
+        #region Field
+        /// <summary> 表别名数组,方便获取表别名
+        /// </summary>
+        private static readonly string[] TableAlias = { "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z" };
+        /// <summary> 用于判断DateTime.Now属性
+        /// </summary>
         private static readonly MemberInfo _TimeNow = typeof(DateTime).GetProperty("Now");
-        private LambdaExpression _lambda;
-        private ISaw _saw;
-        private bool _unaryNot;
-        private string _sql;
-        private object _object;
-        private int _layer;
+        /// <summary> 方法入口
+        /// </summary>
         private int _entry;
+        /// <summary> 需要解析的lambda表达式树
+        /// </summary>
+        private LambdaExpression _lambda;
+        /// <summary> 当前正在解析的lambda表达式树
+        /// </summary>
+        private Expression _currExpr;
+        /// <summary> 解析提供程序
+        /// </summary>
+        private ISaw _saw;
+        #endregion
+
+        #region State
+        /// <summary> 表示当前类的状态
+        /// </summary>
+        class State
+        {
+            private void Check(DustType type)
+            {
+                if (DustType != type)
+                {
+                    throw new NotSupportedException("结果类型错误");
+                }
+            }
+
+            /// <summary> 反转当前 UnaryNot 状态
+            /// </summary>
+            public void Not()
+            {
+                UnaryNot = !UnaryNot;
+            }
+
+            private int _layer;
+            /// <summary> 增加递归层数
+            /// </summary>
+            public void IncreaseLayer()
+            {
+                if (++_layer > 100)
+                {
+                    throw new OutOfMemoryException("表达式过于复杂");
+                }
+                DustType = blqw.DustType.Undefined;
+            }
+            /// <summary> 减少递归层数
+            /// </summary>
+            public void DecreaseLayer()
+            {
+                _layer--;
+            }
+
+            public DustType DustType { get; private set; }
+            /// <summary> 在解析一元表达式时用于控制当前状态
+            /// </summary>
+            public bool UnaryNot { get; private set; }
+
+            private string _sql;
+            public string Sql
+            {
+                get
+                {
+                    Check(blqw.DustType.Sql);
+                    return _sql;
+                }
+                set
+                {
+                    DustType = blqw.DustType.Sql;
+                    _sql = value;
+                }
+            }
+
+            private object _object;
+            public object Object
+            {
+                get
+                {
+                    switch (DustType)
+                    {
+                        case DustType.Object:
+                            return _object;
+                        case DustType.Number:
+                            return _number;
+                        case DustType.Array:
+                            return _array;
+                        case DustType.Boolean:
+                            return _boolean;
+                        case DustType.DateTime:
+                            return _datetime;
+                        case DustType.Binary:
+                            return _binary;
+                        case DustType.String:
+                            return _string;
+                        case DustType.Sql:
+                        case DustType.Undefined:
+                        default:
+                            throw new NotSupportedException("结果类型错误");
+                    }
+                }
+                set
+                {
+                    var conv = value as IConvertible;
+                    if (conv != null)
+                    {
+                        var code = conv.GetTypeCode();
+                        if (code >= TypeCode.SByte && code <= TypeCode.Decimal)
+                        {
+                            DustType = DustType.Number;
+                            _number = conv;
+                        }
+                        else
+                        {
+                            switch (code)
+                            {
+                                case TypeCode.DBNull:
+                                    DustType = DustType.Object;
+                                    _object = null;
+                                    break;
+                                case TypeCode.Boolean:
+                                    DustType = DustType.Boolean;
+                                    _boolean = conv.ToBoolean(null);
+                                    break;
+                                case TypeCode.String:
+                                case TypeCode.Char:
+                                    DustType = DustType.String;
+                                    _string = conv.ToString(null);
+                                    break;
+                                case TypeCode.DateTime:
+                                    DustType = DustType.DateTime;
+                                    _datetime = conv.ToDateTime(null);
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }
+                    }
+                    else if (value is byte[])
+                    {
+                        DustType = DustType.Binary;
+                        _binary = (byte[])value;
+                    }
+                    else if (value is IEnumerable)
+                    {
+                        DustType = DustType.Array;
+                        _array = (IEnumerable)value;
+                    }
+                    else if (value is SqlExpr)
+                    {
+                        DustType = DustType.Sql;
+                        _sql = ((SqlExpr)value).Sql;
+                    }
+                    else
+                    {
+                        DustType = DustType.Object;
+                        _object = value;
+                    }
+                }
+            }
+
+            private IConvertible _number;
+            public IConvertible Number
+            {
+                get
+                {
+                    Check(blqw.DustType.Number);
+                    return _number;
+                }
+                set
+                {
+                    DustType = blqw.DustType.Number;
+                    _number = value;
+                }
+            }
+
+            private IEnumerable _array;
+            public IEnumerable Array
+            {
+                get
+                {
+                    Check(blqw.DustType.Array);
+                    return _array;
+                }
+                set
+                {
+                    DustType = blqw.DustType.Array;
+                    _array = value;
+                }
+            }
+
+            private bool _boolean;
+            public bool Boolean
+            {
+                get
+                {
+                    Check(blqw.DustType.Boolean);
+                    return _boolean;
+                }
+                set
+                {
+                    DustType = blqw.DustType.Boolean;
+                    _boolean = value;
+                }
+            }
+
+            private DateTime _datetime;
+            public DateTime DateTime
+            {
+                get
+                {
+                    Check(blqw.DustType.DateTime);
+                    return _datetime;
+                }
+                set
+                {
+                    DustType = blqw.DustType.DateTime;
+                    _datetime = value;
+                }
+            }
+
+            private byte[] _binary;
+            public byte[] Binary
+            {
+                get
+                {
+                    Check(blqw.DustType.Binary);
+                    return _binary;
+                }
+                set
+                {
+                    DustType = blqw.DustType.Binary;
+                    _binary = value;
+                }
+            }
+
+            private string _string;
+            public string String
+            {
+                get
+                {
+                    Check(blqw.DustType.String);
+                    return _string;
+                }
+                set
+                {
+                    DustType = blqw.DustType.String;
+                    _string = value;
+                }
+            }
+
+            public bool IsNull()
+            {
+                switch (DustType)
+                {
+                    case DustType.Object:
+                        return _object == null;
+                    case DustType.Array:
+                        return _array == null;
+                    case DustType.String:
+                        return _string == null;
+                    default:
+                        return false;
+                }
+            }
+        }
+
+        private State _state;
+
         #endregion
 
         public Faller(LambdaExpression expr)
@@ -36,34 +305,34 @@ namespace blqw
         {
             _entry = WHERE;
             _saw = saw;
-            Initialization();
-            return ParseToSql(_lambda.Body);
+            _state = new State();
+            return GetSql(_lambda.Body);
         }
 
         public string ToOrderBy(ISaw saw, bool asc)
         {
             _entry = ORDERBY;
             _saw = saw;
-            Initialization();
+            _state = new State();
             var expr = _lambda.Body;
             var newExpr = expr as NewExpression;
             if (newExpr != null)
             {
-                return string.Join(", ", newExpr.Arguments.Select(it => _saw.OrderBy(ParseToSql(it), asc)));
+                return string.Join(", ", newExpr.Arguments.Select(it => _saw.OrderBy(GetSql(it), asc)));
             }
             var arrExpr = expr as NewArrayExpression;
             if (arrExpr != null)
             {
-                return string.Join(", ", arrExpr.Expressions.Select(it => _saw.OrderBy(ParseToSql(it), asc)));
+                return string.Join(", ", arrExpr.Expressions.Select(it => _saw.OrderBy(GetSql(it), asc)));
             }
-            return _saw.OrderBy(ParseToSql(expr), asc);
+            return _saw.OrderBy(GetSql(expr), asc);
         }
 
         public string ToSet(ISaw saw)
         {
             _entry = SET;
             _saw = saw;
-            Initialization();
+            _state = new State();
             var expr = _lambda.Body as MemberInitExpression;
             if (expr == null)
             {
@@ -84,7 +353,7 @@ namespace blqw
         {
             _entry = COLUMNS;
             _saw = saw;
-            Initialization();
+            _state = new State();
             var expr = _lambda.Body as NewExpression;
             if (expr == null || expr.Arguments.Count == 0)
             {
@@ -100,10 +369,6 @@ namespace blqw
                 return string.Join(", ", ToColumns(expr));
             }
         }
-
-
-
-
 
         private IEnumerable<string> ToColumns(NewExpression expr)
         {
@@ -121,11 +386,11 @@ namespace blqw
             var member = column as MemberExpression;
             if (member != null && member.Member.Name == alias.Name)
             {
-                return ParseToSql(member);
+                return GetSql(member);
             }
             else
             {
-                return _saw.GetColumn(ParseToSql(column), alias.Name);
+                return _saw.GetColumn(GetSql(column), alias.Name);
             }
         }
 
@@ -136,11 +401,12 @@ namespace blqw
             {
                 Throw(_lambda.Body);
             }
-            if (Parse(expr) == DustType.Sql)
+            Parse(expr);
+            if (_state.DustType == DustType.Sql)
             {
-                return _sql;
+                return _state.Sql;
             }
-            if (_object == null)
+            if (_state.IsNull())
             {
                 var length = _lambda.Parameters.Count;
                 if (length > 26)
@@ -156,7 +422,7 @@ namespace blqw
             }
             else
             {
-                return GetValueSql(_object);
+                return GetSql();
             }
         }
 
@@ -165,106 +431,208 @@ namespace blqw
 
         #region Parse
 
-        private DustType ParseArrayIndex(BinaryExpression expr)
+        private void Parse(Expression expr)
         {
-            if (Parse(expr.Left) != DustType.Array)
+            _state.IncreaseLayer();
+            _currExpr = expr;
+            if (expr != null)
+            {
+                switch (expr.NodeType)
+                {
+                    case ExpressionType.Negate:
+                    case ExpressionType.NegateChecked:
+                    case ExpressionType.Not:
+                    case ExpressionType.Convert:
+                    case ExpressionType.ConvertChecked:
+                    case ExpressionType.ArrayLength:
+                    case ExpressionType.Quote:
+                    case ExpressionType.TypeAs:
+                        this.Parse((UnaryExpression)expr);
+                        break;
+                    case ExpressionType.Add:
+                    case ExpressionType.AddChecked:
+                    case ExpressionType.Subtract:
+                    case ExpressionType.SubtractChecked:
+                    case ExpressionType.Multiply:
+                    case ExpressionType.MultiplyChecked:
+                    case ExpressionType.Divide:
+                    case ExpressionType.Modulo:
+                    case ExpressionType.And:
+                    case ExpressionType.AndAlso:
+                    case ExpressionType.Or:
+                    case ExpressionType.OrElse:
+                    case ExpressionType.LessThan:
+                    case ExpressionType.LessThanOrEqual:
+                    case ExpressionType.GreaterThan:
+                    case ExpressionType.GreaterThanOrEqual:
+                    case ExpressionType.Equal:
+                    case ExpressionType.NotEqual:
+                    case ExpressionType.Coalesce:
+                    case ExpressionType.RightShift:
+                    case ExpressionType.LeftShift:
+                    case ExpressionType.ExclusiveOr:
+                        this.Parse((BinaryExpression)expr);
+                        break;
+                    case ExpressionType.TypeIs:
+                        this.Parse((TypeBinaryExpression)expr);
+                        break;
+                    case ExpressionType.Conditional:
+                        this.Parse((ConditionalExpression)expr);
+                        break;
+                    case ExpressionType.Constant:
+                        this.Parse((ConstantExpression)expr);
+                        break;
+                    case ExpressionType.Parameter:
+                        this.Parse((ParameterExpression)expr);
+                        break;
+                    case ExpressionType.MemberAccess:
+                        this.Parse((MemberExpression)expr);
+                        break;
+                    case ExpressionType.Call:
+                        this.Parse((MethodCallExpression)expr);
+                        break;
+                    case ExpressionType.Lambda:
+                        this.Parse((LambdaExpression)expr);
+                        break;
+                    case ExpressionType.New:
+                        this.Parse((NewExpression)expr);
+                        break;
+                    case ExpressionType.NewArrayInit:
+                    case ExpressionType.NewArrayBounds:
+                        this.Parse((NewArrayExpression)expr);
+                        break;
+                    case ExpressionType.Invoke:
+                        this.Parse((InvocationExpression)expr);
+                        break;
+                    case ExpressionType.MemberInit:
+                        this.Parse((MemberInitExpression)expr);
+                        break;
+                    case ExpressionType.ListInit:
+                        this.Parse((ListInitExpression)expr);
+                        break;
+                    case ExpressionType.ArrayIndex:
+                        this.ParseArrayIndex((BinaryExpression)expr);
+                        break;
+                    default:
+                        break;
+                }
+            }
+            if (_state.DustType == DustType.Undefined)
             {
                 Throw(expr);
             }
-            var arr = (dynamic)_object;
-            if (Parse(expr.Right) != DustType.Number)
-            {
-                Throw(expr);
-            }
-            _object = arr[Convert.ToInt32(_object)];
-            return Result(_object);
+            _currExpr = expr;
+            _state.DecreaseLayer();
         }
-
-        private DustType Parse(BinaryExpression expr)
+        private void ParseArrayIndex(BinaryExpression expr)
+        {
+            Parse(expr.Left);
+            CheckDustType(DustType.Array);
+            var arr = _state.Array;
+            Parse(expr.Right);
+            CheckDustType(DustType.Number);
+            if (arr is IList)
+            {
+                _state.Object = ((IList)arr)[Convert.ToInt32(_state.Number)];
+            }
+            else
+            {
+                _state.Object = ((dynamic)arr)[Convert.ToInt32(_state.Number)];
+            }
+        }
+        private void Parse(BinaryExpression expr)
         {
             //得到 expr.Right 部分的返回值
-            var right = new SawDust(this, Parse(expr.Right), _sql ?? _object);
+            Parse(expr.Right);
             //如果右边是布尔值常量
-            if (right.Type == DustType.Boolean)
+            if (_state.DustType == DustType.Boolean)
             {
-                if ((expr.NodeType == ExpressionType.Equal) != (bool)_object)
+                if ((expr.NodeType == ExpressionType.Equal) != _state.Boolean)
                 {
-                    _unaryNot = !_unaryNot;
+                    _state.Not();
                 }
-                var unaryExpr = UnaryExpression.IsTrue(expr.Left);
-                return Parse(unaryExpr);
+                Parse(UnaryExpression.IsTrue(expr.Left));
+                return;
             }
-            else if (right.Type == DustType.Undefined)
-            {
-                Throw(expr);
-            }
+            var right = GetSawDust();
             // 解析 expr.Left 部分
-            var left = Parse(expr.Left);
-            var opt = ConvertBinaryOperator(expr.NodeType);
-            switch (left)
+            Parse(expr.Left);
+            switch (_state.DustType)
             {
                 case DustType.Sql:
-                    _sql = _saw.BinaryOperator(_sql, opt, right.ToSql());
-                    return DustType.Sql;
+                    _state.Sql = _saw.BinaryOperator(_state.Sql, ConvertBinaryOperator(expr.NodeType), right.ToSql());
+                    return;
                 case DustType.Number:
                     //如果左右都是 Number常量
                     if (right.Type == DustType.Number)
                     {
                         //直接计算结果
-                        return Math(expr, ((IConvertible)right.Value), ((IConvertible)right.Value));
+                        Math(expr, ((IConvertible)right.Value), ((IConvertible)right.Value));
                     }
-                    _sql = _saw.BinaryOperator(AddNumber(_object), opt, right.ToSql());
-                    return DustType.Sql;
+                    else
+                    {
+                        _state.Sql = _saw.BinaryOperator(AddNumber(_state.Number), ConvertBinaryOperator(expr.NodeType), right.ToSql());
+                    }
+                    return;
                 case DustType.Boolean:
                     //如果左边是布尔值常量,虽然这种写法很操蛋
-                    if ((expr.NodeType == ExpressionType.Equal) != (bool)_object)
+                    if ((expr.NodeType == ExpressionType.Equal) != _state.Boolean)
                     {
-                        _unaryNot = !_unaryNot;
+                        _state.Not();
                     }
-                    var unaryExpr = UnaryExpression.IsTrue(expr.Right);
-                    return Parse(unaryExpr);
+                    Parse(UnaryExpression.IsTrue(expr.Right));
+                    return;
+                case DustType.DateTime:
+                    _state.Sql = _saw.BinaryOperator(AddObject(_state.DateTime), ConvertBinaryOperator(expr.NodeType), right.ToSql());
+                    return;
+                case DustType.Binary:
+                    _state.Sql = _saw.BinaryOperator(AddObject(_state.Binary), ConvertBinaryOperator(expr.NodeType), right.ToSql());
+                    return;
+                case DustType.String:
+                    _state.Sql = _saw.BinaryOperator(AddObject(_state.String), ConvertBinaryOperator(expr.NodeType), right.ToSql());
+                    return;
                 case DustType.Object:
-                    _sql = _saw.BinaryOperator(AddObject(_object), opt, right.ToSql());
-                    return DustType.Sql;
+                    _state.Sql = _saw.BinaryOperator(AddObject(_state.Object), ConvertBinaryOperator(expr.NodeType), right.ToSql());
+                    return;
                 case DustType.Undefined:
                 case DustType.Array:
                 default:
                     Throw(expr);
-                    break;
+                    throw new NotImplementedException();
             }
-            throw new NotImplementedException();
         }
-        private DustType Parse(ConditionalExpression expr) { throw new NotImplementedException(); }
-        private DustType Parse(ConstantExpression expr)
+        private void Parse(ConditionalExpression expr) { Throw(expr); }
+        private void Parse(ConstantExpression expr)
         {
-            return Result(expr.Value);
+            _state.Object = expr.Value;
         }
-        private DustType Parse(ListInitExpression expr) { throw new NotImplementedException(); }
-        private DustType Parse(MemberExpression expr)
+        private void Parse(ListInitExpression expr) { Throw(expr); }
+        private void Parse(MemberExpression expr)
         {
             var para = expr.Expression as ParameterExpression;
             if (para != null)
             {
                 //命名参数,返回 表别名.列名
                 var index = _lambda.Parameters.IndexOf(para);
-                _sql = _saw.GetColumn(GetAlias(index), expr.Member);
+                _state.Sql = _saw.GetColumn(GetAlias(index), expr.Member);
                 if (expr.Type == typeof(bool) && _entry == WHERE)
                 {
-                    _sql = _saw.BinaryOperator(_sql, BinaryOperatorType.Equal, AddBoolean(true));
+                    _state.Sql = _saw.BinaryOperator(_state.Sql, BinaryOperatorType.Equal, AddBoolean(true));
                 }
-                return DustType.Sql;
             }
             else if (object.ReferenceEquals(expr.Member, _TimeNow))
             {
                 //如果是DateTime.Now 返回数据库的当前时间表达式
-                _sql = _saw.AddTimeNow(Parameters);
+                var now = _saw.AddTimeNow(Parameters);
                 //如果数据库没有相应的表达式,则使用C#中的当前时间
-                if (_sql == null)
+                if (now == null)
                 {
-                    _object = DateTime.Now;
-                    return DustType.Object;
+                    _state.Object = DateTime.Now;
                 }
-                return DustType.Sql;
+                else
+                {
+                    _state.Sql = now;
+                }
             }
             else
             {
@@ -272,8 +640,8 @@ namespace blqw
                 // expr.Expression 不等于 null 说明是实例成员,否则是静态成员
                 if (expr.Expression != null)
                 {
-                    var dusttype = Parse(expr.Expression);
-                    if (dusttype == DustType.Sql) //实例成员,必然可以得到一个对象
+                    Parse(expr.Expression);
+                    if (_state.DustType == DustType.Sql) //实例成员,必然可以得到一个对象
                     {
                         if (expr.Member is PropertyInfo)
                         {
@@ -282,119 +650,109 @@ namespace blqw
                             {
                                 Throw(expr);
                             }
-                            _sql = _saw.CallMethod(method, new SawDust(this, dusttype, _sql), new SawDust[0]);
-                            return DustType.Sql;
+                            _state.Sql = _saw.CallMethod(method, GetSawDust(), new SawDust[0]);
+                            return;
                         }
+                    }
+                    else if (_state.IsNull())
+                    {
+                        Throw(expr);
                     }
                     else
                     {
-                        target = _object;
-                        if (target == null)
-                            Throw(expr);
+                        target = _state.Object;
                     }
                 }
                 //判断 Member 是属性还是字段,使用反射,得到值
                 var p = expr.Member as PropertyInfo;
                 if (p != null)
                 {
-                    return Result(p.GetValue(target, null));
+                    _state.Object = p.GetValue(target, null);
                 }
                 else //不是属性,只能是字段
                 {
-                    return Result(((FieldInfo)expr.Member).GetValue(target));
+                    _state.Object = ((FieldInfo)expr.Member).GetValue(target);
                 }
             }
         }
-        private DustType Parse(MemberInitExpression expr) { throw new NotImplementedException(); }
-        private DustType Parse(NewArrayExpression expr)
+        private void Parse(MemberInitExpression expr) { Throw(expr); }
+        private void Parse(NewArrayExpression expr)
         {
             var exps = expr.Expressions;
             var length = expr.Expressions.Count;
-            var arr = Array.CreateInstance(expr.Type.GetElementType(), length);
+            var arr = Array.CreateInstance(typeof(SawDust), length);
             for (int i = 0; i < length; i++)
             {
-                arr.SetValue(new SawDust(this, Parse(exps[i]), _sql ?? _object), i);
+                Parse(exps[i]);
+                arr.SetValue(GetSawDust(), i);
             }
-            _object = arr;
-            return DustType.Array;
+            _state.Array = arr;
         }
-        private DustType Parse(NewExpression expr) { throw new NotImplementedException(); }
-        private DustType Parse(ParameterExpression expr) { throw new NotImplementedException(); }
-        private DustType Parse(TypeBinaryExpression expr) { throw new NotImplementedException(); }
-        private DustType Parse(UnaryExpression expr)
+        private void Parse(NewExpression expr) { Throw(expr); }
+        private void Parse(ParameterExpression expr) { Throw(expr); }
+        private void Parse(TypeBinaryExpression expr) { Throw(expr); }
+        private void Parse(UnaryExpression expr)
         {
             switch (expr.NodeType)
             {
                 case ExpressionType.Not:
                 case ExpressionType.IsFalse:
-                    _unaryNot = !_unaryNot;
-                    var type = Parse(expr.Operand);
-                    try
+                    _state.Not();
+                    Parse(expr.Operand);
+                    if (_state.DustType == DustType.Boolean)
                     {
-                        if (type == DustType.Boolean)
-                        {
-                            _object = (bool)_object != _unaryNot;
-                            return DustType.Boolean;
-                        }
-                        else if (type != DustType.Sql)
-                        {
-                            _sql = _saw.BinaryOperator(GetValueSql(_object), BinaryOperatorType.NotEqual, AddBoolean(_unaryNot));
-                        }
-                        return DustType.Sql;
+                        _state.Boolean = _state.Boolean != _state.UnaryNot;
                     }
-                    finally
+                    else if (_state.DustType != DustType.Sql)
                     {
-                        _unaryNot = !_unaryNot;
+                        _state.Sql = _saw.BinaryOperator(GetSql(), BinaryOperatorType.NotEqual, AddBoolean(_state.UnaryNot));
                     }
+                    _state.Not();
+                    return;
                 case ExpressionType.IsTrue:
-                    type = Parse(expr.Operand);
-                    if (type == DustType.Boolean)
+                    Parse(expr.Operand);
+                    if (_state.DustType == DustType.Boolean)
                     {
-                        _object = (bool)_object == _unaryNot;
-                        return DustType.Boolean;
+                        _state.Boolean = _state.Boolean == _state.UnaryNot;
                     }
-                    else if (type != DustType.Sql)
+                    else if (_state.DustType != DustType.Sql)
                     {
-                        _sql = _saw.BinaryOperator(GetValueSql(_object), BinaryOperatorType.Equal, AddBoolean(_unaryNot));
+                        _state.Sql = _saw.BinaryOperator(GetSql(), BinaryOperatorType.Equal, AddBoolean(_state.UnaryNot));
                     }
-                    return DustType.Sql;
+                    return;
                 case ExpressionType.Convert:
-                    type = Parse(expr.Operand);
-                    if (type != DustType.Sql)
+                    Parse(expr.Operand);
+                    if (_state.DustType != DustType.Sql)
                     {
-                        if (!object.ReferenceEquals(_object.GetType(), expr.Type))
+                        if (_state.DustType == DustType.String && expr.Type == typeof(SqlExpr))
                         {
-                            if (_object is string && expr.Type == typeof(SqlExpr))
-                            {
-                                _sql = (string)_object;
-                                _object = null;
-                                return DustType.Sql;
-                            }
-                            else
-                            {
-                                _object = Convert.ChangeType(_object, expr.Type);
-                                return Result(_object);
-                            }
+                            _state.Sql = _state.String;
+                            return;
+                        }
+                        var obj = _state.Object;
+                        if (!object.ReferenceEquals(obj.GetType(), expr.Type))
+                        {
+                            _state.Object = Convert.ChangeType(obj, expr.Type);
                         }
                     }
-                    return type;
+                    return;
                 default:
-                    break;
+                    Throw(expr);
+                    throw new NotImplementedException();
             }
-
-            throw new NotImplementedException();
         }
-        private DustType Parse(MethodCallExpression expr)
+        private void Parse(MethodCallExpression expr)
         {
             SawDust target;
             SawDust[] args;
             //尝试直接调用,如果成功 返回true 如果失败,返回已解析的对象
             if (TryInvoke(expr, out target, out args))
             {
-                return Result(_object);
+                return;
             }
 
             var method = expr.Method;
+            //表达式树有时会丢失方法的调用方类型,这时需要重新反射方法
             if (method.ReflectedType == typeof(object) && expr.Object != null)
             {
                 method = expr.Object.Type.GetMethod(expr.Method.Name, expr.Method.GetParameters().Select(it => it.ParameterType).ToArray());
@@ -402,16 +760,14 @@ namespace blqw
 
             if (object.ReferenceEquals(method.ReflectedType, typeof(string)))
             {
-                _sql = ParseStringMethod(method, target, args);
-                return DustType.Sql;
+                _state.Sql = ParseStringMethod(method, target, args);
+                return;
             }
             else if (object.ReferenceEquals(method.ReflectedType, typeof(System.Linq.Enumerable)))
             {
-                if (method.Name == "Contains"
-                    && args.Length == 2)
+                if (method.Name == "Contains" && args.Length == 2)
                 {
-                    if (args[0].Type == DustType.Array
-                    && args[1].Type == DustType.Sql)
+                    if (args[0].Type == DustType.Array && args[1].Type == DustType.Sql)
                     {
                         var element = (string)args[1].Value;
                         string[] array;
@@ -422,27 +778,57 @@ namespace blqw
                         }
                         else
                         {
-                            array = ((IEnumerable)args[0].Value).Cast<object>().Select(GetValueSql).ToArray();
+                            array = ((IEnumerable)args[0].Value).Cast<object>().Select(ObjectToSql).ToArray();
                         }
-                        _sql = _saw.Contains(_unaryNot, element, array);
-                        return DustType.Sql;
+                        _state.Sql = _saw.Contains(_state.UnaryNot, element, array);
+                        return;
                     }
-                    else if (args[0].Type == DustType.Sql
-                    && args[1].Type == DustType.String)
+                    else if (args[0].Type == DustType.Sql && args[1].Type == DustType.String)
                     {
-                        _sql = ParseStringMethod(method, args[0], new SawDust[] { args[1] });
-                        return DustType.Sql;
+                        _state.Sql = ParseStringMethod(method, args[0], new SawDust[] { args[1] });
+                        return;
                     }
                 }
             }
-
-            _sql = _saw.CallMethod(method, target, args);
-            return DustType.Sql;
+            _state.Sql = _saw.CallMethod(method, target, args);
         }
 
         #endregion
 
         #region MyRegion
+
+        private SawDust GetSawDust()
+        {
+            if (_state.DustType == DustType.Sql)
+            {
+                return new SawDust(this, DustType.Sql, _state.Sql);
+            }
+            else
+            {
+                return new SawDust(this, _state.DustType, _state.Object);
+            }
+        }
+
+        private void CheckDustType(DustType type)
+        {
+            if (_state.DustType != type)
+            {
+                if (type != blqw.DustType.Object)
+                {
+                    Throw();
+                }
+                var code = (int)_state.DustType;
+                if (code <= 1 || code > 8)
+                {
+                    Throw();
+                }
+            }
+        }
+
+        private void Throw()
+        {
+            Throw(_currExpr);
+        }
 
         private bool TryInvoke(MethodCallExpression expr, out SawDust target, out SawDust[] args)
         {
@@ -453,7 +839,8 @@ namespace blqw
             }
             else
             {
-                target = new SawDust(this, Parse(expr.Object), _sql ?? _object);
+                Parse(expr.Object);
+                target = GetSawDust();
             }
 
             var exprArgs = expr.Arguments;
@@ -462,21 +849,21 @@ namespace blqw
             var call = target.Type != DustType.Sql;
             for (int i = 0; i < length; i++)
             {
-                var type = Parse(exprArgs[i]);
-                if (type == DustType.Sql)
+                Parse(exprArgs[i]);
+                if (_state.DustType == DustType.Sql)
                 {
                     if (call) call = false;
-                    args[i] = new SawDust(this, DustType.Sql, _sql ?? _object);
+                    args[i] = new SawDust(this, DustType.Sql, _state.Sql);
                 }
                 else
                 {
-                    args[i] = new SawDust(this, type, _object);
+                    args[i] = GetSawDust();
                 }
             }
-            //target 一直保持null 说明所有参数都有实际值,直接执行方法,获得方法返回值
+
             if (call)
             {
-                _object = expr.Method.Invoke(target.Value, args.Select(it => it.Value).ToArray());
+                _state.Object = expr.Method.Invoke(target.Value, args.Select(it => it.Value).ToArray());
                 return true;
             }
             else
@@ -486,84 +873,83 @@ namespace blqw
         }
 
 
-        private DustType Math(Expression expr, IConvertible a, IConvertible b)
+        private void Math(Expression expr, IConvertible a, IConvertible b)
         {
             switch (expr.NodeType)
             {
                 case ExpressionType.Add:
-                    unchecked { _object = a.ToDecimal(null) + b.ToDecimal(null); }
-                    return DustType.Number;
+                    unchecked { _state.Number = a.ToDecimal(null) + b.ToDecimal(null); }
+                    return;
                 case ExpressionType.AddChecked:
-                    checked { _object = a.ToDecimal(null) + b.ToDecimal(null); }
-                    return DustType.Number;
+                    checked { _state.Number = a.ToDecimal(null) + b.ToDecimal(null); }
+                    return;
                 case ExpressionType.Subtract:
-                    unchecked { _object = a.ToDecimal(null) - b.ToDecimal(null); }
-                    return DustType.Number;
+                    unchecked { _state.Number = a.ToDecimal(null) - b.ToDecimal(null); }
+                    return;
                 case ExpressionType.SubtractChecked:
-                    checked { _object = a.ToDecimal(null) - b.ToDecimal(null); }
-                    return DustType.Number;
+                    checked { _state.Number = a.ToDecimal(null) - b.ToDecimal(null); }
+                    return;
                 case ExpressionType.Multiply:
-                    unchecked { _object = a.ToDecimal(null) * b.ToDecimal(null); }
-                    return DustType.Number;
+                    unchecked { _state.Number = a.ToDecimal(null) * b.ToDecimal(null); }
+                    return;
                 case ExpressionType.MultiplyChecked:
-                    checked { _object = a.ToDecimal(null) * b.ToDecimal(null); }
-                    return DustType.Number;
+                    checked { _state.Number = a.ToDecimal(null) * b.ToDecimal(null); }
+                    return;
                 case ExpressionType.Divide:
-                    _object = a.ToDecimal(null) / b.ToDecimal(null);
-                    return DustType.Number;
+                    _state.Number = a.ToDecimal(null) / b.ToDecimal(null);
+                    return;
                 case ExpressionType.Modulo:
-                    _object = a.ToDecimal(null) % b.ToDecimal(null);
-                    return DustType.Number;
+                    _state.Number = a.ToDecimal(null) % b.ToDecimal(null);
+                    return;
                 case ExpressionType.And:
-                    _object = (long)a & (long)b;
-                    return DustType.Number;
+                    _state.Number = (long)a & (long)b;
+                    return;
                 case ExpressionType.Or:
-                    _object = (long)a | (long)b;
-                    return DustType.Number;
-                case ExpressionType.LessThan:
-                    _object = ((IComparable)a).CompareTo((IComparable)b) < 0;
-                    return DustType.Boolean;
-                case ExpressionType.LessThanOrEqual:
-                    _object = ((IComparable)a).CompareTo((IComparable)b) <= 0;
-                    return DustType.Boolean;
-                case ExpressionType.GreaterThan:
-                    _object = ((IComparable)a).CompareTo((IComparable)b) > 0;
-                    return DustType.Boolean;
-                case ExpressionType.GreaterThanOrEqual:
-                    _object = ((IComparable)a).CompareTo((IComparable)b) >= 0;
-                    return DustType.Boolean;
-                case ExpressionType.Equal:
-                    _object = ((IComparable)a).CompareTo((IComparable)b) == 0;
-                    return DustType.Boolean;
-                case ExpressionType.NotEqual:
-                    _object = ((IComparable)a).CompareTo((IComparable)b) != 0;
-                    return DustType.Boolean;
+                    _state.Number = (long)a | (long)b;
+                    return;
                 case ExpressionType.RightShift:
                     if (a is int == false)
                     {
                         Throw(expr);
                     }
-                    _object = (int)a >> (int)b;
-                    return DustType.Number;
+                    _state.Number = (int)a >> (int)b;
+                    return;
                 case ExpressionType.LeftShift:
                     if (a is int == false)
                     {
                         Throw(expr);
                     }
-                    _object = (int)a << (int)b;
-                    return DustType.Number;
+                    _state.Number = (int)a << (int)b;
+                    return;
+                case ExpressionType.LessThan:
+                    _state.Boolean = ((IComparable)a).CompareTo((IComparable)b) < 0;
+                    return;
+                case ExpressionType.LessThanOrEqual:
+                    _state.Boolean = ((IComparable)a).CompareTo((IComparable)b) <= 0;
+                    return;
+                case ExpressionType.GreaterThan:
+                    _state.Boolean = ((IComparable)a).CompareTo((IComparable)b) > 0;
+                    return;
+                case ExpressionType.GreaterThanOrEqual:
+                    _state.Boolean = ((IComparable)a).CompareTo((IComparable)b) >= 0;
+                    return;
+                case ExpressionType.Equal:
+                    _state.Boolean = ((IComparable)a).CompareTo((IComparable)b) == 0;
+                    return;
+                case ExpressionType.NotEqual:
+                    _state.Boolean = ((IComparable)a).CompareTo((IComparable)b) != 0;
+                    return;
                 case ExpressionType.ExclusiveOr:
                     if (a is int == false)
                     {
                         Throw(expr);
                     }
-                    _object = (int)a ^ (int)b;
-                    return DustType.Boolean;
+                    _state.Number = (int)a ^ (int)b;
+                    return;
                 default:
-                    break;
+                    Throw(expr);
+                    throw new NotImplementedException();
             }
-            Throw(expr);
-            throw new NotImplementedException();
         }
 
         #endregion
@@ -578,15 +964,15 @@ namespace blqw
                 switch (method.Name)
                 {
                     case "StartsWith":
-                        if (_unaryNot)
+                        if (_state.UnaryNot)
                             return _saw.BinaryOperator(target.ToSql(), BinaryOperatorType.NotStartWith, args[0].ToSql());
                         return _saw.BinaryOperator(target.ToSql(), BinaryOperatorType.StartWith, args[0].ToSql());
                     case "EndsWith":
-                        if (_unaryNot)
+                        if (_state.UnaryNot)
                             return _saw.BinaryOperator(target.ToSql(), BinaryOperatorType.NotEndWith, args[0].ToSql());
                         return _saw.BinaryOperator(target.ToSql(), BinaryOperatorType.EndWith, args[0].ToSql());
                     case "Contains":
-                        if (_unaryNot)
+                        if (_state.UnaryNot)
                             return _saw.BinaryOperator(target.ToSql(), BinaryOperatorType.NotContains, args[0].ToSql());
                         return _saw.BinaryOperator(target.ToSql(), BinaryOperatorType.Contains, args[0].ToSql());
                     default:
@@ -617,12 +1003,9 @@ namespace blqw
             return _saw.AddBoolean((bool)value, Parameters);
         }
 
-        private void Initialization()
-        {
-            _unaryNot = false;
-            _layer = 0;
-        }
 
+        /// <summary> 根据索引获取表别名 a,b,c,d,e,f...类推
+        /// </summary>
         private string GetAlias(int index)
         {
             if (index > 26)
@@ -632,33 +1015,67 @@ namespace blqw
             return (char)('a' + index) + "";
         }
 
-        private string ParseToSql(Expression expr)
+        /// <summary> 解析参数中的表达式,得到结果,并转换成sql形式
+        /// </summary>
+        private string GetSql(Expression expr)
         {
-            switch (Parse(expr))
-            {
-                case DustType.Undefined:
-                    Throw(expr);
-                    break;
-                case DustType.Sql:
-                    return _sql;
-                case DustType.Number:
-                    return _saw.AddNumber((IConvertible)_object, Parameters);
-                case DustType.Array:
-                    break;
-                case DustType.Boolean:
-                    return _saw.AddBoolean((bool)_object, Parameters);
-                case DustType.Object:
-                case DustType.DateTime:
-                case DustType.String:
-                case DustType.Binary:
-                    return _saw.AddObject(_object, Parameters);
-                default:
-                    break;
-            }
-            Throw(expr);
-            throw new NotImplementedException();
+            Parse(expr);
+            return GetSql();
         }
 
+        /// <summary> 获取任何对象的sql形式
+        /// </summary>
+        private string ObjectToSql(object obj)
+        {
+            if (obj == null || obj is DBNull)
+            {
+                return _saw.AddObject(null, Parameters);
+            }
+            else if (obj is bool)
+            {
+                return _saw.AddBoolean((bool)obj, Parameters);
+            }
+            var conv = obj as IConvertible;
+            if (conv != null)
+            {
+                var code = conv.GetTypeCode();
+                if (code >= TypeCode.SByte && code <= TypeCode.Decimal)
+                {
+                    return _saw.AddNumber(conv, Parameters);
+                }
+            }
+            return _saw.AddObject(obj, Parameters);
+        }
+
+        /// <summary> 获取最后一次解析的结果,并转换成sql形式
+        /// </summary>
+        private string GetSql()
+        {
+            switch (_state.DustType)
+            {
+                case DustType.Sql:
+                    return _state.Sql;
+                case DustType.Number:
+                    return _saw.AddNumber(_state.Number, Parameters);
+                case DustType.Boolean:
+                    return _saw.AddBoolean(_state.Boolean, Parameters);
+                case DustType.Object:
+                    return _saw.AddObject(_state.Object, Parameters);
+                case DustType.DateTime:
+                    return _saw.AddObject(_state.DateTime, Parameters);
+                case DustType.String:
+                    return _saw.AddObject(_state.String, Parameters);
+                case DustType.Binary:
+                    return _saw.AddObject(_state.Binary, Parameters);
+                case DustType.Undefined:
+                case DustType.Array:
+                default:
+                    throw new NotSupportedException("无法从当前结果中得到Sql");
+            }
+        }
+
+        /// <summary> 将ExpressionType转为BinaryOperatorType
+        /// </summary>
         private BinaryOperatorType ConvertBinaryOperator(ExpressionType type)
         {
             switch (type)
@@ -673,9 +1090,9 @@ namespace blqw
                 case ExpressionType.Divide:
                     return BinaryOperatorType.Divide;
                 case ExpressionType.Equal:
-                    return _unaryNot ? BinaryOperatorType.NotEqual : BinaryOperatorType.Equal;
+                    return _state.UnaryNot ? BinaryOperatorType.NotEqual : BinaryOperatorType.Equal;
                 case ExpressionType.NotEqual:
-                    return _unaryNot ? BinaryOperatorType.Equal : BinaryOperatorType.NotEqual;
+                    return _state.UnaryNot ? BinaryOperatorType.Equal : BinaryOperatorType.NotEqual;
                 case ExpressionType.ExclusiveOr:
                     return BinaryOperatorType.BitXor;
                 case ExpressionType.GreaterThan:
@@ -709,87 +1126,9 @@ namespace blqw
             }
         }
 
-        private DustType Parse(Expression expr)
-        {
-            if (_layer++ > 100)
-            {
-                throw new OutOfMemoryException("表达式过于复杂");
-            }
-            _sql = null;
-            _object = null;
-            if (expr == null)
-                return DustType.Undefined;
-            if (expr.CanReduce)
-            {
-                expr = expr.Reduce();
-            }
-            switch (expr.NodeType)
-            {
-                case ExpressionType.Negate:
-                case ExpressionType.NegateChecked:
-                case ExpressionType.Not:
-                case ExpressionType.Convert:
-                case ExpressionType.ConvertChecked:
-                case ExpressionType.ArrayLength:
-                case ExpressionType.Quote:
-                case ExpressionType.TypeAs:
-                    return this.Parse((UnaryExpression)expr);
-                case ExpressionType.Add:
-                case ExpressionType.AddChecked:
-                case ExpressionType.Subtract:
-                case ExpressionType.SubtractChecked:
-                case ExpressionType.Multiply:
-                case ExpressionType.MultiplyChecked:
-                case ExpressionType.Divide:
-                case ExpressionType.Modulo:
-                case ExpressionType.And:
-                case ExpressionType.AndAlso:
-                case ExpressionType.Or:
-                case ExpressionType.OrElse:
-                case ExpressionType.LessThan:
-                case ExpressionType.LessThanOrEqual:
-                case ExpressionType.GreaterThan:
-                case ExpressionType.GreaterThanOrEqual:
-                case ExpressionType.Equal:
-                case ExpressionType.NotEqual:
-                case ExpressionType.Coalesce:
-                case ExpressionType.RightShift:
-                case ExpressionType.LeftShift:
-                case ExpressionType.ExclusiveOr:
-                    return this.Parse((BinaryExpression)expr);
-                case ExpressionType.TypeIs:
-                    return this.Parse((TypeBinaryExpression)expr);
-                case ExpressionType.Conditional:
-                    return this.Parse((ConditionalExpression)expr);
-                case ExpressionType.Constant:
-                    return this.Parse((ConstantExpression)expr);
-                case ExpressionType.Parameter:
-                    return this.Parse((ParameterExpression)expr);
-                case ExpressionType.MemberAccess:
-                    return this.Parse((MemberExpression)expr);
-                case ExpressionType.Call:
-                    return this.Parse((MethodCallExpression)expr);
-                case ExpressionType.Lambda:
-                    return this.Parse((LambdaExpression)expr);
-                case ExpressionType.New:
-                    return this.Parse((NewExpression)expr);
-                case ExpressionType.NewArrayInit:
-                case ExpressionType.NewArrayBounds:
-                    return this.Parse((NewArrayExpression)expr);
-                case ExpressionType.Invoke:
-                    return this.Parse((InvocationExpression)expr);
-                case ExpressionType.MemberInit:
-                    return this.Parse((MemberInitExpression)expr);
-                case ExpressionType.ListInit:
-                    return this.Parse((ListInitExpression)expr);
-                case ExpressionType.ArrayIndex:
-                    return this.ParseArrayIndex((BinaryExpression)expr);
-                default:
-                    Throw(expr);
-                    return DustType.Undefined;
-            }
-        }
 
+        /// <summary> 强制抛出异常
+        /// </summary>
         private void Throw(Expression expr)
         {
             if (expr == null)
@@ -797,73 +1136,6 @@ namespace blqw
                 throw new NotSupportedException("缺失表达式");
             }
             throw new NotSupportedException("无法解释表达式 => " + expr.ToString());
-        }
-
-        private string GetValueSql(object obj)
-        {
-            if (obj == null || obj is DBNull)
-            {
-                return _saw.AddObject(null, Parameters);
-            }
-            else if (obj is bool)
-            {
-                return _saw.AddBoolean((bool)obj, Parameters);
-            }
-            var conv = obj as IConvertible;
-            if (conv != null)
-            {
-                var code = conv.GetTypeCode();
-                if (code >= TypeCode.SByte && code <= TypeCode.Decimal)
-                {
-                    return _saw.AddNumber(conv, Parameters);
-                }
-            }
-            return _saw.AddObject(obj, Parameters);
-        }
-
-        private DustType Result(object obj)
-        {
-            _object = obj;
-            if (_object == null || _object is DBNull)
-            {
-                return DustType.Object;
-            }
-            var conv = _object as IConvertible;
-            if (conv != null)
-            {
-                var code = conv.GetTypeCode();
-                switch (conv.GetTypeCode())
-                {
-                    case TypeCode.Boolean:
-                        return DustType.Boolean;
-                    case TypeCode.String:
-                    case TypeCode.Char:
-                        return DustType.String;
-                    case TypeCode.DateTime:
-                        return DustType.DateTime;
-                    default:
-                        break;
-                }
-                if (code >= TypeCode.SByte && code <= TypeCode.Decimal)
-                {
-                    return DustType.Number;
-                }
-            }
-            if (_object is byte[] || _object is System.IO.Stream)
-            {
-                return DustType.Binary;
-            }
-            if (_object is IEnumerable)
-            {
-                return DustType.Array;
-            }
-            if (_object is SqlExpr)
-            {
-                _sql = ((SqlExpr)_object).Sql;
-                _object = null;
-                return DustType.Sql;
-            }
-            return DustType.Object;
         }
 
         #endregion
@@ -876,7 +1148,7 @@ namespace blqw
                 throw new NotSupportedException("无法解释表达式 => " + m.ToString());
             }
             var column = _saw.GetColumn(null, m.Member);
-            var value = ParseToSql(m.Expression);
+            var value = GetSql(m.Expression);
             return _saw.UpdateSet(column, value);
         }
 
@@ -890,7 +1162,7 @@ namespace blqw
                     throw new NotSupportedException("无法解释表达式 => " + expr.Bindings[0].ToString());
                 }
                 var column = _saw.GetColumn(null, m.Member);
-                var value = ParseToSql(m.Expression);
+                var value = GetSql(m.Expression);
                 yield return new KeyValuePair<string, string>(column, value);
             }
         }

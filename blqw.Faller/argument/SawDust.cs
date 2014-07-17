@@ -5,8 +5,15 @@ using System.Text;
 
 namespace blqw
 {
+    /// <summary> 表达式树解析结果
+    /// </summary>
     public struct SawDust
     {
+        /// <summary> 初始化解析结果
+        /// </summary>
+        /// <param name="faller">解析组件</param>
+        /// <param name="type">结果类型</param>
+        /// <param name="value">结果值</param>
         internal SawDust(Faller faller, DustType type, Object value)
         {
             Type = type;
@@ -14,12 +21,20 @@ namespace blqw
             Faller = faller;  
         }
 
+        /// <summary> 解析组件
+        /// </summary>
         private readonly Faller Faller;
 
+        /// <summary> 结果类型
+        /// </summary>
         public readonly DustType Type;
 
+        /// <summary> 结果值
+        /// </summary>
         public readonly Object Value;
 
+        /// <summary> 无论结果类型 强制转换为Sql语句,DustType.Array和DustType.Undefined会抛出异常
+        /// </summary>
         public string ToSql()
         {
             switch (Type)
@@ -42,6 +57,8 @@ namespace blqw
             }
         }
 
+        /// <summary>  是否是非DustType.Sql和DustType.Undefined类型
+        /// </summary>
         public bool IsObject
         {
             get
