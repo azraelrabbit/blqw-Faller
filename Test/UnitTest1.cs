@@ -20,7 +20,7 @@ namespace Test
 
         void Where(string expected, Expression<Func<User, bool>> expr)
         {
-            var parse = new Faller(expr);
+            var parse = Faller.Create(expr);
             var sql = parse.ToWhere(OracleSaw.Instance);
             Assert.AreEqual(expected, sql);
         }
@@ -84,7 +84,7 @@ namespace Test
 
         void OrderBy(string expected, Expression<Func<User, object>> expr, bool asc)
         {
-            var parse = new Faller(expr);
+            var parse = Faller.Create(expr);
             var sql = parse.ToOrderBy(OracleSaw.Instance, asc);
             Assert.AreEqual(expected, sql);
         }
@@ -102,8 +102,8 @@ namespace Test
 
         void Set(string expected, Expression<Func<User>> expr)
         {
-            var parse = new Faller(expr);
-            var sql = parse.ToSet(OracleSaw.Instance);
+            var parse = Faller.Create(expr);
+            var sql = parse.ToSets(OracleSaw.Instance);
             Assert.AreEqual(expected, sql);
         }
 
@@ -118,7 +118,7 @@ namespace Test
 
         void Columns(string expected, Expression<Func<User, object>> expr)
         {
-            var parse = new Faller(expr);
+            var parse = Faller.Create(expr);
             var sql = parse.ToColumns(OracleSaw.Instance);
             Assert.AreEqual(expected, sql);
         }

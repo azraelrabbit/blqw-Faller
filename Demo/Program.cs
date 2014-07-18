@@ -9,14 +9,20 @@ namespace Demo
 {
     class Program
     {
-
         static void Main(string[] args)
         {
-            Program i = null;
-            Console.WriteLine(i as string);
-            Where<User>(u => u.ID.ToString() == "100");
+            DemoColumnsAndValues();
+            DemoValues();
+            DemoSqlExpr();
+            DemoWhere();
+            DemoSet();
+            DemoOrderBy();
+            DemoColumns();
         }
 
+
+
+        #region Demo
 
         static void DemoSqlExpr()
         {
@@ -96,34 +102,61 @@ namespace Demo
             Columns<User>(u => new { u.ID, u.Sex });
             Columns<User>(u => new { UserName = u.Name });
             Columns<User>(u => new { DateTime = DateTime.Now, X = 1 });
+        }
 
+        static void DemoValues()
+        {
+            Values<User>(u => new object[] { u.Name, u.ID });
+            Values<User>(u => new object[] { DateTime.Now, u.ID });
+            Values<User>(u => new object[] { u.Name, 1, (SqlExpr)"'xyz'" });
+
+            Values<User>(u => u.Birthday);
+
+        }
+
+        static void DemoColumnsAndValues()
+        {
+            ColumnsAndValues<User>(u => new User { Name = "aaaa" });
+            ColumnsAndValues<User>(u => new User { Sex = true });
+            ColumnsAndValues<User>(u => new User { ID = 1 });
+        }
+        #endregion
+
+        public static void Values<T>(Expression<Func<T, object>> expr)
+        {
+            CommonTo(Create(expr).ToValues);
+        }
+
+        public static void ColumnsAndValues<T>(Expression<Func<T, object>> expr)
+        {
+            Console.WriteLine("Expr   : " + expr.Body.ToString());
+            var parse = Faller.Create(expr);
+            var sqls = parse.ToColumnsAndValues(OracleSaw.Instance);
+            Console.WriteLine("Columns : " + sqls.Key);
+            Console.WriteLine("Values : " + sqls.Value);
+            Console.WriteLine();
+            foreach (var p in parse.Parameters)
+            {
+                Console.WriteLine("参数 {0} : {1}", p.ParameterName, p.Value);
+            }
+            Console.WriteLine(new string('.', Console.BufferWidth - 1));
         }
 
         public static void Columns<T>(Expression<Func<T, object>> expr)
         {
-            Console.WriteLine("Expr   : " + expr.Body.ToString());
-            Console.WriteLine();
-            var parse = new Faller(expr);
-            var sql = parse.ToColumns(OracleSaw.Instance);
-            Console.WriteLine("Parsed : " + sql);
-            Console.WriteLine(new string('.', Console.BufferWidth - 1));
+            CommonTo(Create(expr).ToColumns);
         }
 
         public static void Set<T>(Expression<Func<T>> expr)
         {
-            Console.WriteLine("Expr   : " + expr.Body.ToString());
-            Console.WriteLine();
-            var parse = new Faller(expr);
-            var sql = parse.ToSet(OracleSaw.Instance);
-            Console.WriteLine("Parsed : " + sql);
-            Console.WriteLine(new string('.', Console.BufferWidth - 1));
+            CommonTo(Create(expr).ToSets);
         }
 
         public static void OrderBy<T>(Expression<Func<T, object>> expr, bool asc)
         {
             Console.WriteLine("Expr   : " + expr.Body.ToString());
             Console.WriteLine("ASC    : " + asc);
-            var parse = new Faller(expr);
+            var parse = Faller.Create(expr);
             var sql = parse.ToOrderBy(OracleSaw.Instance, asc);
             Console.WriteLine("Parsed : " + sql);
             Console.WriteLine(new string('.', Console.BufferWidth - 1));
@@ -133,7 +166,7 @@ namespace Demo
         {
             Console.WriteLine("Expr   : " + expr.Body.ToString());
             Console.WriteLine();
-            var parse = new Faller(expr);
+            var parse = Faller.Create(expr);
             var sql = parse.ToWhere(OracleSaw.Instance);
             Console.WriteLine("Parsed : " + sql);
             Console.WriteLine();
@@ -144,6 +177,18 @@ namespace Demo
             Console.WriteLine(new string('.', Console.BufferWidth - 1));
         }
 
+        private static IFaller Create(LambdaExpression expr)
+        {
+            Console.WriteLine("Expr   : " + expr.Body.ToString());
+            Console.WriteLine();
+            return Faller.Create(expr);
+        }
+        private static void CommonTo(Func<ISaw, string> func)
+        {
+            var sql = func(OracleSaw.Instance);
+            Console.WriteLine("Parsed : " + sql);
+            Console.WriteLine(new string('.', Console.BufferWidth - 1));
+        }
 
         class User
         {

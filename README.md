@@ -29,6 +29,10 @@ Faller(砍树人)是一个轻量级的表达式树解析框架
 
 
 ## 更新说明  
+2014.07.18
+增加2个方法
+string ToValues(ISaw saw);
+KeyValuePair<string, string> ToColumnsAndValues(ISaw saw);
 2014.07.17
 完成部分代码的整理和注释工作
 2014.07.16  

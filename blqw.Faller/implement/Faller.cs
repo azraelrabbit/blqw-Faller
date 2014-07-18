@@ -9,17 +9,32 @@ using System.Collections;
 
 namespace blqw
 {
-    public class Faller : IFaller
+    /// <summary> 轻量级表达式树解析器
+    /// </summary>
+    public sealed class Faller : IFaller
     {
+        private Faller() { }
+        /// <summary> 创建一个解析器
+        /// </summary>
+        /// <param name="expr">lambda表达式</param>
+        public static IFaller Create(LambdaExpression expr)
+        {
+            return new Faller() {
+                _lambda = expr,
+                Parameters = new List<DbParameter>(),
+            };
+        }
 
-        #region EntryFlag
+        #region EntryFlags
         private const int WHERE = 1;
         private const int ORDERBY = 2;
-        private const int SET = 3;
+        private const int SETS = 3;
         private const int COLUMNS = 4;
+        private const int VALUES = 5;
+        private const int COLUMNS_VALUES = 6;
         #endregion
 
-        #region Field
+        #region Fields
         /// <summary> 表别名数组,方便获取表别名
         /// </summary>
         private static readonly string[] TableAlias = { "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z" };
@@ -41,9 +56,9 @@ namespace blqw
         #endregion
 
         #region State
-        /// <summary> 表示当前类的状态
+        /// <summary> 解析器状态数据
         /// </summary>
-        class State
+        private class State
         {
             private void Check(DustType type)
             {
@@ -290,16 +305,13 @@ namespace blqw
                 }
             }
         }
-
+        /// <summary> 表示解析器的各种状态
+        /// </summary>
         private State _state;
 
         #endregion
 
-        public Faller(LambdaExpression expr)
-        {
-            _lambda = expr;
-            Parameters = new List<DbParameter>();
-        }
+        #region interface IFaller
 
         public string ToWhere(ISaw saw)
         {
@@ -328,15 +340,15 @@ namespace blqw
             return _saw.OrderBy(GetSql(expr), asc);
         }
 
-        public string ToSet(ISaw saw)
+        public string ToSets(ISaw saw)
         {
-            _entry = SET;
+            _entry = SETS;
             _saw = saw;
             _state = new State();
             var expr = _lambda.Body as MemberInitExpression;
             if (expr == null)
             {
-                Throw(_lambda.Body);
+                Throw("仅支持new Model{ Field1 = Value1, Field2 = Value2 }表达式");
             }
             if (expr.Bindings.Count == 0)
             {
@@ -344,9 +356,9 @@ namespace blqw
             }
             if (expr.Bindings.Count == 1)
             {
-                return ToSet(expr.Bindings[0]);
+                return ToSets(expr.Bindings[0]);
             }
-            return string.Join(", ", expr.Bindings.Select(ToSet));
+            return string.Join(", ", expr.Bindings.Select(ToSets));
         }
 
         public string ToColumns(ISaw saw)
@@ -369,65 +381,66 @@ namespace blqw
                 return string.Join(", ", ToColumns(expr));
             }
         }
-
-        private IEnumerable<string> ToColumns(NewExpression expr)
+        
+        public string ToValues(ISaw saw)
         {
-            var length = expr.Arguments.Count;
-            for (int i = 0; i < length; i++)
+            _entry = VALUES;
+            _saw = saw;
+            _state = new State();
+            var expr = _lambda.Body;
+            var arrExpr = expr as NewArrayExpression;
+            if (arrExpr != null)
             {
-                var column = expr.Arguments[i];
-                var alias = expr.Members[i];
-                yield return ToColumn(column, alias);
+                return string.Join(", ", arrExpr.Expressions.Select(GetSql));
             }
+            return GetSql(expr);
         }
 
-        private string ToColumn(Expression column, MemberInfo alias)
+        public KeyValuePair<string, string> ToColumnsAndValues(ISaw saw)
         {
-            var member = column as MemberExpression;
-            if (member != null && member.Member.Name == alias.Name)
-            {
-                return GetSql(member);
-            }
-            else
-            {
-                return _saw.GetColumn(GetSql(column), alias.Name);
-            }
-        }
-
-        private string ToColumnAll()
-        {
-            var expr = _lambda.Body as ConstantExpression;
+            _entry = COLUMNS_VALUES;
+            _saw = saw;
+            _state = new State();
+            var expr = _lambda.Body as MemberInitExpression;
             if (expr == null)
             {
-                Throw(_lambda.Body);
+                Throw("仅支持 new Model{ Field1 = Value1, Field2 = Value2 } 表达式");
             }
-            Parse(expr);
-            if (_state.DustType == DustType.Sql)
+            var binds = expr.Bindings;
+            var length = binds.Count;
+            if (length == 0)
             {
-                return _state.Sql;
+                return new KeyValuePair<string, string>();
             }
-            if (_state.IsNull())
+            if (length == 1)
             {
-                var length = _lambda.Parameters.Count;
-                if (length > 26)
+                MemberAssignment m = binds[0] as MemberAssignment;
+                if (m == null)
                 {
-                    throw new NotSupportedException("对象过多");
+                    Throw("无法解释表达式 => " + binds[0].ToString());
                 }
-                var columns = new char[length];
-                for (int i = 0; i < length; i++)
-                {
-                    columns[i] = ((char)('a' + i));
-                }
-                return string.Join(".*, ", columns) + ".*";
+                return new KeyValuePair<string, string>(_saw.GetColumn(null, m.Member), GetSql(m.Expression));
             }
-            else
+
+            var columns = new string[length];
+            var values = new string[length];
+            for (int i = 0; i < length; i++)
             {
-                return GetSql();
+                MemberAssignment m = binds[i] as MemberAssignment;
+                if (m == null)
+                {
+                    Throw("无法解释表达式 => " + binds[i].ToString());
+                }
+                columns[i] = _saw.GetColumn(null, m.Member);
+                values[i] = GetSql(m.Expression);
             }
+
+            return new KeyValuePair<string, string>(string.Join(", ", columns), string.Join(", ", values));
         }
 
-
         public ICollection<DbParameter> Parameters { get; private set; }
+        
+        #endregion
 
         #region Parse
 
@@ -797,161 +810,6 @@ namespace blqw
 
         #region MyRegion
 
-        private SawDust GetSawDust()
-        {
-            if (_state.DustType == DustType.Sql)
-            {
-                return new SawDust(this, DustType.Sql, _state.Sql);
-            }
-            else
-            {
-                return new SawDust(this, _state.DustType, _state.Object);
-            }
-        }
-
-        private void CheckDustType(DustType type)
-        {
-            if (_state.DustType != type)
-            {
-                if (type != blqw.DustType.Object)
-                {
-                    Throw();
-                }
-                var code = (int)_state.DustType;
-                if (code <= 1 || code > 8)
-                {
-                    Throw();
-                }
-            }
-        }
-
-        private void Throw()
-        {
-            Throw(_currExpr);
-        }
-
-        private bool TryInvoke(MethodCallExpression expr, out SawDust target, out SawDust[] args)
-        {
-            //判断方法对象,如果是null为静态方法,反之为实例方法
-            if (expr.Object == null)
-            {
-                target = new SawDust(this, DustType.Object, null);
-            }
-            else
-            {
-                Parse(expr.Object);
-                target = GetSawDust();
-            }
-
-            var exprArgs = expr.Arguments;
-            var length = exprArgs.Count;
-            args = new SawDust[length];
-            var call = target.Type != DustType.Sql;
-            for (int i = 0; i < length; i++)
-            {
-                Parse(exprArgs[i]);
-                if (_state.DustType == DustType.Sql)
-                {
-                    if (call) call = false;
-                    args[i] = new SawDust(this, DustType.Sql, _state.Sql);
-                }
-                else
-                {
-                    args[i] = GetSawDust();
-                }
-            }
-
-            if (call)
-            {
-                _state.Object = expr.Method.Invoke(target.Value, args.Select(it => it.Value).ToArray());
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
-
-
-        private void Math(Expression expr, IConvertible a, IConvertible b)
-        {
-            switch (expr.NodeType)
-            {
-                case ExpressionType.Add:
-                    unchecked { _state.Number = a.ToDecimal(null) + b.ToDecimal(null); }
-                    return;
-                case ExpressionType.AddChecked:
-                    checked { _state.Number = a.ToDecimal(null) + b.ToDecimal(null); }
-                    return;
-                case ExpressionType.Subtract:
-                    unchecked { _state.Number = a.ToDecimal(null) - b.ToDecimal(null); }
-                    return;
-                case ExpressionType.SubtractChecked:
-                    checked { _state.Number = a.ToDecimal(null) - b.ToDecimal(null); }
-                    return;
-                case ExpressionType.Multiply:
-                    unchecked { _state.Number = a.ToDecimal(null) * b.ToDecimal(null); }
-                    return;
-                case ExpressionType.MultiplyChecked:
-                    checked { _state.Number = a.ToDecimal(null) * b.ToDecimal(null); }
-                    return;
-                case ExpressionType.Divide:
-                    _state.Number = a.ToDecimal(null) / b.ToDecimal(null);
-                    return;
-                case ExpressionType.Modulo:
-                    _state.Number = a.ToDecimal(null) % b.ToDecimal(null);
-                    return;
-                case ExpressionType.And:
-                    _state.Number = (long)a & (long)b;
-                    return;
-                case ExpressionType.Or:
-                    _state.Number = (long)a | (long)b;
-                    return;
-                case ExpressionType.RightShift:
-                    if (a is int == false)
-                    {
-                        Throw(expr);
-                    }
-                    _state.Number = (int)a >> (int)b;
-                    return;
-                case ExpressionType.LeftShift:
-                    if (a is int == false)
-                    {
-                        Throw(expr);
-                    }
-                    _state.Number = (int)a << (int)b;
-                    return;
-                case ExpressionType.LessThan:
-                    _state.Boolean = ((IComparable)a).CompareTo((IComparable)b) < 0;
-                    return;
-                case ExpressionType.LessThanOrEqual:
-                    _state.Boolean = ((IComparable)a).CompareTo((IComparable)b) <= 0;
-                    return;
-                case ExpressionType.GreaterThan:
-                    _state.Boolean = ((IComparable)a).CompareTo((IComparable)b) > 0;
-                    return;
-                case ExpressionType.GreaterThanOrEqual:
-                    _state.Boolean = ((IComparable)a).CompareTo((IComparable)b) >= 0;
-                    return;
-                case ExpressionType.Equal:
-                    _state.Boolean = ((IComparable)a).CompareTo((IComparable)b) == 0;
-                    return;
-                case ExpressionType.NotEqual:
-                    _state.Boolean = ((IComparable)a).CompareTo((IComparable)b) != 0;
-                    return;
-                case ExpressionType.ExclusiveOr:
-                    if (a is int == false)
-                    {
-                        Throw(expr);
-                    }
-                    _state.Number = (int)a ^ (int)b;
-                    return;
-                default:
-                    Throw(expr);
-                    throw new NotImplementedException();
-            }
-        }
-
         #endregion
 
         #region ParseMethods
@@ -993,16 +851,62 @@ namespace blqw
             return _saw.AddObject(value, Parameters);
         }
 
-        internal string AddNumber(object value)
+        internal string AddNumber(IConvertible value)
         {
-            return _saw.AddNumber((IConvertible)value, Parameters);
+            return _saw.AddNumber(value, Parameters);
         }
 
-        internal string AddBoolean(object value)
+        internal string AddBoolean(bool value)
         {
-            return _saw.AddBoolean((bool)value, Parameters);
+            return _saw.AddBoolean(value, Parameters);
         }
 
+        /// <summary> 强制抛出当前表达式的解析异常
+        /// </summary
+        private void Throw()
+        {
+            Throw(_currExpr);
+        }
+
+        /// <summary> 强制抛出表达式解析异常
+        /// </summary>
+        private void Throw(Expression expr)
+        {
+            if (expr == null)
+            {
+                Throw("缺失表达式");
+            }
+            Throw("无法解析表达式 => " + expr.ToString());
+        }
+
+        private void Throw(string message)
+        {
+            switch (_entry)
+            {
+                case WHERE:
+                    message = "ToWhere失败:\n" + message;
+                    break;
+                case ORDERBY:
+                    message = "ToOrderBy失败:\n" + message;
+                    break;
+                case SETS:
+                    message = "ToSets失败:\n" + message;
+                    break;
+                case COLUMNS:
+                    message = "ToColumns失败:\n" + message;
+                    break;
+                case VALUES:
+                    message = "ToValues失败:\n" + message;
+                    break;
+                case COLUMNS_VALUES:
+                    message = "ToColumnsAndValues失败:\n" + message;
+                    break;    
+                default:
+                    break;
+            }                              
+         
+            throw new NotSupportedException(message);
+        }
 
         /// <summary> 根据索引获取表别名 a,b,c,d,e,f...类推
         /// </summary>
@@ -1127,20 +1031,164 @@ namespace blqw
         }
 
 
-        /// <summary> 强制抛出异常
-        /// </summary>
-        private void Throw(Expression expr)
+        private SawDust GetSawDust()
         {
-            if (expr == null)
+            if (_state.DustType == DustType.Sql)
             {
-                throw new NotSupportedException("缺失表达式");
+                return new SawDust(this, DustType.Sql, _state.Sql);
             }
-            throw new NotSupportedException("无法解释表达式 => " + expr.ToString());
+            else
+            {
+                return new SawDust(this, _state.DustType, _state.Object);
+            }
         }
+
+        private void CheckDustType(DustType type)
+        {
+            if (_state.DustType != type)
+            {
+                if (type != blqw.DustType.Object)
+                {
+                    Throw();
+                }
+                var code = (int)_state.DustType;
+                if (code <= 1 || code > 8)
+                {
+                    Throw();
+                }
+            }
+        }
+
+
+        private bool TryInvoke(MethodCallExpression expr, out SawDust target, out SawDust[] args)
+        {
+            //判断方法对象,如果是null为静态方法,反之为实例方法
+            if (expr.Object == null)
+            {
+                target = new SawDust(this, DustType.Object, null);
+            }
+            else
+            {
+                Parse(expr.Object);
+                target = GetSawDust();
+            }
+
+            var exprArgs = expr.Arguments;
+            var length = exprArgs.Count;
+            args = new SawDust[length];
+            var call = target.Type != DustType.Sql;
+            for (int i = 0; i < length; i++)
+            {
+                Parse(exprArgs[i]);
+                if (_state.DustType == DustType.Sql)
+                {
+                    if (call) call = false;
+                    args[i] = new SawDust(this, DustType.Sql, _state.Sql);
+                }
+                else
+                {
+                    args[i] = GetSawDust();
+                }
+            }
+
+            if (call)
+            {
+                _state.Object = expr.Method.Invoke(target.Value, args.Select(it => it.Value).ToArray());
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+
+        private void Math(Expression expr, IConvertible a, IConvertible b)
+        {
+            switch (expr.NodeType)
+            {
+                case ExpressionType.Add:
+                    unchecked { _state.Number = a.ToDecimal(null) + b.ToDecimal(null); }
+                    return;
+                case ExpressionType.AddChecked:
+                    checked { _state.Number = a.ToDecimal(null) + b.ToDecimal(null); }
+                    return;
+                case ExpressionType.Subtract:
+                    unchecked { _state.Number = a.ToDecimal(null) - b.ToDecimal(null); }
+                    return;
+                case ExpressionType.SubtractChecked:
+                    checked { _state.Number = a.ToDecimal(null) - b.ToDecimal(null); }
+                    return;
+                case ExpressionType.Multiply:
+                    unchecked { _state.Number = a.ToDecimal(null) * b.ToDecimal(null); }
+                    return;
+                case ExpressionType.MultiplyChecked:
+                    checked { _state.Number = a.ToDecimal(null) * b.ToDecimal(null); }
+                    return;
+                case ExpressionType.Divide:
+                    _state.Number = a.ToDecimal(null) / b.ToDecimal(null);
+                    return;
+                case ExpressionType.Modulo:
+                    _state.Number = a.ToDecimal(null) % b.ToDecimal(null);
+                    return;
+                case ExpressionType.And:
+                    _state.Number = (long)a & (long)b;
+                    return;
+                case ExpressionType.Or:
+                    _state.Number = (long)a | (long)b;
+                    return;
+                case ExpressionType.RightShift:
+                    if (a is int == false)
+                    {
+                        Throw(expr);
+                    }
+                    _state.Number = (int)a >> (int)b;
+                    return;
+                case ExpressionType.LeftShift:
+                    if (a is int == false)
+                    {
+                        Throw(expr);
+                    }
+                    _state.Number = (int)a << (int)b;
+                    return;
+                case ExpressionType.LessThan:
+                    _state.Boolean = ((IComparable)a).CompareTo((IComparable)b) < 0;
+                    return;
+                case ExpressionType.LessThanOrEqual:
+                    _state.Boolean = ((IComparable)a).CompareTo((IComparable)b) <= 0;
+                    return;
+                case ExpressionType.GreaterThan:
+                    _state.Boolean = ((IComparable)a).CompareTo((IComparable)b) > 0;
+                    return;
+                case ExpressionType.GreaterThanOrEqual:
+                    _state.Boolean = ((IComparable)a).CompareTo((IComparable)b) >= 0;
+                    return;
+                case ExpressionType.Equal:
+                    _state.Boolean = ((IComparable)a).CompareTo((IComparable)b) == 0;
+                    return;
+                case ExpressionType.NotEqual:
+                    _state.Boolean = ((IComparable)a).CompareTo((IComparable)b) != 0;
+                    return;
+                case ExpressionType.ExclusiveOr:
+                    if (a is int == false)
+                    {
+                        Throw(expr);
+                    }
+                    _state.Number = (int)a ^ (int)b;
+                    return;
+                default:
+                    Throw(expr);
+                    throw new NotImplementedException();
+            }
+        }
+
+
 
         #endregion
 
-        private string ToSet(MemberBinding binding)
+        #region ToSet
+        
+        private string ToSets(MemberBinding binding)
         {
             MemberAssignment m = binding as MemberAssignment;
             if (m == null)
@@ -1152,20 +1200,67 @@ namespace blqw
             return _saw.UpdateSet(column, value);
         }
 
-        private IEnumerable<KeyValuePair<string, string>> ToSets(MemberInitExpression expr)
+        #endregion
+
+        #region ToColumn
+
+        private IEnumerable<string> ToColumns(NewExpression expr)
         {
-            foreach (MemberAssignment it in expr.Bindings)
+            var length = expr.Arguments.Count;
+            for (int i = 0; i < length; i++)
             {
-                MemberAssignment m = it as MemberAssignment;
-                if (m == null)
-                {
-                    throw new NotSupportedException("无法解释表达式 => " + expr.Bindings[0].ToString());
-                }
-                var column = _saw.GetColumn(null, m.Member);
-                var value = GetSql(m.Expression);
-                yield return new KeyValuePair<string, string>(column, value);
+                var column = expr.Arguments[i];
+                var alias = expr.Members[i];
+                yield return ToColumn(column, alias);
             }
         }
+
+        private string ToColumn(Expression column, MemberInfo alias)
+        {
+            var member = column as MemberExpression;
+            if (member != null && member.Member.Name == alias.Name)
+            {
+                return GetSql(member);
+            }
+            else
+            {
+                return _saw.GetColumn(GetSql(column), alias.Name);
+            }
+        }
+
+        private string ToColumnAll()
+        {
+            var expr = _lambda.Body as ConstantExpression;
+            if (expr == null)
+            {
+                Throw(_lambda.Body);
+            }
+            Parse(expr);
+            if (_state.DustType == DustType.Sql)
+            {
+                return _state.Sql;
+            }
+            if (_state.IsNull())
+            {
+                var length = _lambda.Parameters.Count;
+                if (length > 26)
+                {
+                    throw new NotSupportedException("对象过多");
+                }
+                var columns = new char[length];
+                for (int i = 0; i < length; i++)
+                {
+                    columns[i] = ((char)('a' + i));
+                }
+                return string.Join(".*, ", columns) + ".*";
+            }
+            else
+            {
+                return GetSql();
+            }
+        }
+
+        #endregion
 
     }
 }

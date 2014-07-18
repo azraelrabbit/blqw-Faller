@@ -22,7 +22,7 @@ namespace blqw
         /// <summary> 将表达式转为Update中Set语句,不包含Set关键字
         /// </summary>
         /// <param name="saw">将表达式格式化为sql语句的机制</param>
-        string ToSet(ISaw saw);
+        string ToSets(ISaw saw);
         /// <summary> 将表达式转为列或列集合的Sql语句
         /// </summary>
         /// <param name="saw">将表达式格式化为sql语句的机制</param>
