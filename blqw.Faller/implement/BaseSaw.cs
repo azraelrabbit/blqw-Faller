@@ -333,7 +333,7 @@ namespace blqw
         /// </summary>
         private string GetTrimArg(SawDust[] args, int index)
         {
-            if (args == null || args.Length < index)
+            if (args == null || args.Length <= index)
             {
                 return null;
             }
