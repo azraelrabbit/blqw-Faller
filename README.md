@@ -9,20 +9,20 @@ Faller(砍树人)是一个轻量级的表达式树解析框架
 [OracleSaw](https://code.csdn.net/jy02305022/blqw-faller/tree/master/blqw.Faller/implement/OracleSaw.cs)  
   
 ## 更新说明  
-2014.07.22
-整理代码
-增加注释
-增加了解释mssql的方式
-2014.07.18
-增加2个方法
-string ToValues(ISaw saw);
-KeyValuePair<string, string> ToColumnsAndValues(ISaw saw);
-2014.07.17
-完成部分代码的整理和注释工作
-2014.07.16  
-单元测试已经完成了  
-接下来要整理代码,再添加注释  
-继续加油吧  
+> 2014.07.22
+> 整理代码
+> 增加注释
+> 增加了解释mssql的方式
+> 2014.07.18
+> 增加2个方法
+> string ToValues(ISaw saw);
+> KeyValuePair<string, string> ToColumnsAndValues(ISaw saw);
+> 2014.07.17
+> 完成部分代码的整理和注释工作
+> 2014.07.16  
+> 单元测试已经完成了  
+> 接下来要整理代码,再添加注释  
+> 继续加油吧  
 
 
 ## 特色  
