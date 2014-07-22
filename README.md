@@ -3,11 +3,11 @@ Faller(砍树人)是一个轻量级的表达式树解析框架
 设计初衷是尽量的简单和灵活  
 它不需要任何其他组件的支持  
 所以可以随意嵌入到任何新项目或已有项目中  
-不同数据库仅需要重新实现[ISaw](https://code.csdn.net/jy02305022/blqw-faller/tree/master/blqw.Faller/interface/ISaw.cs](https://code.csdn.net/jy02305022/blqw-faller/tree/master/blqw.Faller/interface/ISaw.cs)接口,即可构造不同的SQL语句  
+不同数据库仅需要重新实现[ISaw](https://code.csdn.net/jy02305022/blqw-faller/tree/master/blqw.Faller/interface/ISaw.cs)接口,即可构造不同的SQL语句  
 当前版本提供MsSql和Oracle的解释方式  
-[MsSqlSaw](https://code.csdn.net/jy02305022/blqw-faller/tree/master/blqw.Faller/implement/MsSqlSaw.cs](https://code.csdn.net/jy02305022/blqw-faller/tree/master/blqw.Faller/implement/MsSqlSaw.cs)  
-[OracleSaw](https://code.csdn.net/jy02305022/blqw-faller/tree/master/blqw.Faller/implement/OracleSaw.cs](https://code.csdn.net/jy02305022/blqw-faller/tree/master/blqw.Faller/implement/OracleSaw.cs)  
-
+[MsSqlSaw](https://code.csdn.net/jy02305022/blqw-faller/tree/master/blqw.Faller/implement/MsSqlSaw.cs)  
+[OracleSaw](https://code.csdn.net/jy02305022/blqw-faller/tree/master/blqw.Faller/implement/OracleSaw.cs)  
+  
 ## 更新说明  
 2014.07.22
 整理代码
