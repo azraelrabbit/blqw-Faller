@@ -3,32 +3,14 @@ Faller(砍树人)是一个轻量级的表达式树解析框架
 设计初衷是尽量的简单和灵活  
 它不需要任何其他组件的支持  
 所以可以随意嵌入到任何新项目或已有项目中  
-不同数据库仅需要重新实现ISaw接口,即可构造不同的SQL语句  
-
-
-    public interface ISaw
-    {
-        string BinaryOperator(string left, BinaryOperatorType @operator, string right);
-        string Contains(bool not, string element, string[] array);
-    
-        string AddObject(object obj, ICollection<DbParameter> parameters);
-        string AddNumber(IConvertible number, ICollection<DbParameter> parameters);
-        string AddBoolean(bool value, ICollection<DbParameter> parameters);
-        string AddTimeNow(ICollection<DbParameter> parameters);
-    
-        string GetTable(Type type, string alias);
-        string GetColumn(string table, MemberInfo member);
-        string GetColumn(string columnName, string alias);
-    
-        string CallMethod(MethodInfo method, SawDust target, SawDust[] args);
-    
-        string OrderBy(string sql, bool asc);
-    
-        string UpdateSet(string column, string value);
-    }
-
+不同数据库仅需要重新实现[https://code.csdn.net/jy02305022/blqw-faller/tree/master/blqw.Faller/interface/ISaw.cs](https://code.csdn.net/jy02305022/blqw-faller/tree/master/blqw.Faller/interface/ISaw.cs "ISaw")接口,即可构造不同的SQL语句  
+当前版本提供MsSql和Oracle的解释方式
 
 ## 更新说明  
+2014.07.22
+整理代码
+增加注释
+增加了解释mssql的方式
 2014.07.18
 增加2个方法
 string ToValues(ISaw saw);

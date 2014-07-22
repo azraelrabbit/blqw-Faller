@@ -45,8 +45,10 @@
   <ItemGroup>
     <Compile Include="argument\DustType.cs" />
     <Compile Include="argument\SqlExpr.cs" />
+    <Compile Include="implement\BaseSaw.cs" />
+    <Compile Include="implement\MsSqlSaw.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="argument\BinaryOperatorType.cs" />
+    <Compile Include="argument\Operator.cs" />
     <Compile Include="argument\SawDust.cs" />
     <Compile Include="implement\Faller.cs" />
     <Compile Include="implement\OracleSaw.cs" />

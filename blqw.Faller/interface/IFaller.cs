@@ -12,28 +12,32 @@ namespace blqw
     {
         /// <summary> 将表达式转为Where语句,不包含Where关键字
         /// </summary>
-        /// <param name="saw">将表达式格式化为sql语句的机制</param>
+        /// <param name="saw">自定义输出Sql语句的格式的对象</param>
         string ToWhere(ISaw saw);
         /// <summary> 将表达式转为OrderBy语句,不包含OrderBy关键字
         /// </summary>
-        /// <param name="saw">将表达式格式化为sql语句的机制</param>
+        /// <param name="saw">自定义输出Sql语句的格式的对象</param>
         /// <param name="asc">正序或倒序标识</param>
         string ToOrderBy(ISaw saw, bool asc);
         /// <summary> 将表达式转为Update中Set语句,不包含Set关键字
         /// </summary>
-        /// <param name="saw">将表达式格式化为sql语句的机制</param>
+        /// <param name="saw">自定义输出Sql语句的格式的对象</param>
         string ToSets(ISaw saw);
-        /// <summary> 将表达式转为列或列集合的Sql语句
+        /// <summary> 将表达式转为select语句中的列或列集合的Sql语句
         /// </summary>
-        /// <param name="saw">将表达式格式化为sql语句的机制</param>
-        string ToColumns(ISaw saw);
+        /// <param name="saw">自定义输出Sql语句的格式的对象</param>
+        string ToSelectColumns(ISaw saw);
         /// <summary> 将表达式转为值或值集合的sql语句
         /// </summary>
-        /// <param name="saw">将表达式格式化为sql语句的机制</param>
+        /// <param name="saw">自定义输出Sql语句的格式的对象</param>
         string ToValues(ISaw saw);
-        /// <summary> 将表达式转为列集合和值集合2个sql语句
+        /// <summary> 将表达式转为值或值集合的sql语句
         /// </summary>
-        /// <param name="saw">将表达式格式化为sql语句的机制</param>
+        /// <param name="saw">自定义输出Sql语句的格式的对象</param>
+        string ToValues(ISaw saw, Func<string, string> replace);
+        /// <summary> 将表达式转为列集合和值集合2个sql语句,可用于拼装insert语句
+        /// </summary>
+        /// <param name="saw">自定义输出Sql语句的格式的对象</param>
         KeyValuePair<string, string> ToColumnsAndValues(ISaw saw);
         /// <summary> 转换Sql语句过程中产生的参数
         /// </summary>

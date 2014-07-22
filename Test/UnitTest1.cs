@@ -24,6 +24,32 @@ namespace Test
             var sql = parse.ToWhere(OracleSaw.Instance);
             Assert.AreEqual(expected, sql);
         }
+        void OrderBy(string expected, Expression<Func<User, object>> expr, bool asc)
+        {
+            var sql = Faller.Create(expr).ToOrderBy(OracleSaw.Instance, asc);
+            Assert.AreEqual(expected, sql);
+        }
+        void Set(string expected, Expression<Func<User>> expr)
+        {
+            var sql = Faller.Create(expr).ToSets(OracleSaw.Instance);
+            Assert.AreEqual(expected, sql);
+        }
+        void Columns(string expected, Expression<Func<User, object>> expr)
+        {
+            var sql = Faller.Create(expr).ToSelectColumns(OracleSaw.Instance);
+            Assert.AreEqual(expected, sql);
+        }
+        void Values(string expected, Expression<Func<User, object>> expr)
+        {
+            var sql = Faller.Create(expr).ToValues(OracleSaw.Instance);
+            Assert.AreEqual(expected, sql);
+        }
+        void ColumnsAndValues(string expected1,string expected2, Expression<Func<User, object>> expr)
+        {
+            var sql = Faller.Create(expr).ToColumnsAndValues(OracleSaw.Instance);
+            Assert.AreEqual(expected1, sql.Key);
+            Assert.AreEqual(expected2, sql.Value);
+        }
 
         [TestMethod]
         public void WhereTest()
@@ -58,19 +84,19 @@ namespace Test
             //类型转换
             Where("a.ID = 1", u => u.ID == int.Parse(id));
             Where("a.ID = 1", u => u.ID == Convert.ToInt32(id));
-            Where("CAST(a.ID AS NVARCHAR2(100)) = :auto_p0", u => u.ID.ToString() == id);
+            Where("TO_CHAR(a.ID) = :auto_p0", u => u.ID.ToString() == id);
 
             //处理时间类型
             Where("a.BIRTHDAY < SYSDATE", u => u.Birthday < DateTime.Now);
-            Where("CAST(a.BIRTHDAY AS NVARCHAR2(100)) = CAST(SYSDATE AS NVARCHAR2(100))", u => u.Birthday.ToString() == DateTime.Now.ToString());
+            Where("TO_CHAR(a.BIRTHDAY,'yyyy-mm-dd HH:mi:ss') = TO_CHAR(SYSDATE,'yyyy-mm-dd HH:mi:ss')", u => u.Birthday.ToString() == DateTime.Now.ToString());
             Where("TO_CHAR(a.BIRTHDAY,'HHmiss') = TO_CHAR(SYSDATE,'HHmiss')", u => u.Birthday.ToString("HHmmss") == DateTime.Now.ToString("HHmmss"));
             Where("TO_CHAR(a.BIRTHDAY,'yyyy-MM-dd') = :auto_p0", u => u.Birthday.ToShortDateString() == date.ToShortDateString());
             Where("EXTRACT(DAY FROM a.BIRTHDAY) = 1", u => u.Birthday.Day == 1);
 
 
 
-            Where("ltrim(rtrim(a.NAME)) = :auto_p0", u => u.Name.Trim() == "");
-            Where("a.NAME IS NULL OR a.NAME == ''", u => string.IsNullOrEmpty(u.Name));
+            Where("trim(a.NAME) = :auto_p0", u => u.Name.Trim() == "");
+            Where("a.NAME IS NULL OR a.NAME = ''", u => string.IsNullOrEmpty(u.Name));
 
             //组合表达式
             Where("((a.ID IN (1, 2, 3, 4, 5) AND (a.NAME LIKE '%' || :auto_p0 || '%' OR a.NAME IS NULL)) AND BITAND(a.ID, 4) = 4) AND a.BIRTHDAY < SYSDATE",
@@ -80,13 +106,6 @@ namespace Test
                    u.Birthday < DateTime.Now);
 
 
-        }
-
-        void OrderBy(string expected, Expression<Func<User, object>> expr, bool asc)
-        {
-            var parse = Faller.Create(expr);
-            var sql = parse.ToOrderBy(OracleSaw.Instance, asc);
-            Assert.AreEqual(expected, sql);
         }
 
         [TestMethod]
@@ -100,13 +119,6 @@ namespace Test
             OrderBy("1 DESC", u => 1, false);
         }
 
-        void Set(string expected, Expression<Func<User>> expr)
-        {
-            var parse = Faller.Create(expr);
-            var sql = parse.ToSets(OracleSaw.Instance);
-            Assert.AreEqual(expected, sql);
-        }
-
         [TestMethod]
         public void SetTest()
         {
@@ -116,24 +128,17 @@ namespace Test
             Set("ID = 1, NAME = :auto_p0, SEX = 0, BIRTHDAY = SYSDATE", () => new User { ID = 1, Name = "bbbb", Sex = false, Birthday = DateTime.Now });
         }
 
-        void Columns(string expected, Expression<Func<User, object>> expr)
-        {
-            var parse = Faller.Create(expr);
-            var sql = parse.ToColumns(OracleSaw.Instance);
-            Assert.AreEqual(expected, sql);
-        }
-
         [TestMethod]
         public void ColumnsTest()
         {
             Columns("a.*", u => null);
+            Columns("a.NAME", u => u.Name);
             Columns("a.NAME", u => new { u.Name });
+            Columns("a.ID, a.SEX", u => new object[] { u.ID, u.Sex });
             Columns("a.ID, a.SEX", u => new { u.ID, u.Sex });
             Columns("a.NAME UserName", u => new { UserName = u.Name });
             Columns("SYSDATE DateTime, 1 X", u => new { DateTime = DateTime.Now, X = 1 });
         }
-
-
 
         [TestMethod]
         public void SqlExprTest()
@@ -145,5 +150,22 @@ namespace Test
             Where("rownum < 10", u => (SqlExpr)"rownum < 10");
             Where("rownum < 10 AND a.ID > 10", u => (SqlExpr)"rownum < 10" && u.ID > 10);
         }
+
+        [TestMethod]
+        public void ValuesTest()
+        {
+            Values("a.NAME, a.ID", u => new object[] { u.Name, u.ID });
+            Values("SYSDATE", u => DateTime.Now);
+            Values("'xyz'", u => (SqlExpr)"'xyz'");
+            Values("1, 2, 3, 4, 5", u => new int[] { 1, 2, 3, 4, 5 });
+            Values("a.BIRTHDAY", u => u.Birthday);
+        }
+
+        [TestMethod]
+        public void ColumnsAndValuesTest()
+        {
+            ColumnsAndValues("ID, NAME, SEX, BIRTHDAY", "seq_table.nextval, :auto_p0, 1, SYSDATE", u => new User { ID = (SqlExpr)"seq_table.nextval", Name = "aaaa", Sex = true, Birthday = DateTime.Now });
+        }
+
     }
 }

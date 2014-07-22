@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -33,7 +34,7 @@ namespace blqw
         /// </summary>
         public readonly Object Value;
 
-        /// <summary> 无论结果类型 强制转换为Sql语句,DustType.Array和DustType.Undefined会抛出异常
+        /// <summary> 无论结果类型 强制转换为Sql语句,DustType.Undefined抛出异常
         /// </summary>
         public string ToSql()
         {
@@ -44,7 +45,7 @@ namespace blqw
                 case DustType.Number:
                     return Faller.AddNumber((IConvertible)Value);
                 case DustType.Array:
-                    throw new NotImplementedException();
+                    return Faller.GetSql(Value);
                 case DustType.Boolean:
                     return Faller.AddBoolean((bool)Value);
                 case DustType.Object:

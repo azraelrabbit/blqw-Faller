@@ -11,13 +11,21 @@ namespace Demo
     {
         static void Main(string[] args)
         {
-            DemoColumnsAndValues();
-            DemoValues();
-            DemoSqlExpr();
-            DemoWhere();
-            DemoSet();
-            DemoOrderBy();
-            DemoColumns();
+
+            Expression<Func<User, object>> expr = u => u.Birthday.DayOfWeek == DayOfWeek.Sunday;
+
+            var sql = Faller.Create(expr).ToWhere(MsSqlSaw.Instance);
+
+            Console.WriteLine(sql);
+
+            Where<User>(u => u.Name.Trim(',', ' ') == "");
+            //DemoColumnsAndValues();
+            //DemoValues();
+            //DemoSqlExpr();
+            //DemoWhere();
+            //DemoSet();
+            //DemoOrderBy();
+            //DemoColumns();
         }
 
 
@@ -107,18 +115,15 @@ namespace Demo
         static void DemoValues()
         {
             Values<User>(u => new object[] { u.Name, u.ID });
-            Values<User>(u => new object[] { DateTime.Now, u.ID });
-            Values<User>(u => new object[] { u.Name, 1, (SqlExpr)"'xyz'" });
-
+            Values<User>(u => DateTime.Now);
+            Values<User>(u => (SqlExpr)"'xyz'");
+            Values<User>(u => new int[] { 1, 2, 3, 4, 5 });
             Values<User>(u => u.Birthday);
-
         }
 
         static void DemoColumnsAndValues()
         {
-            ColumnsAndValues<User>(u => new User { Name = "aaaa" });
-            ColumnsAndValues<User>(u => new User { Sex = true });
-            ColumnsAndValues<User>(u => new User { ID = 1 });
+            ColumnsAndValues<User>(u => new User { ID = (SqlExpr)"seq_table.nextval", Name = "aaaa", Sex = true, Birthday = DateTime.Now });
         }
         #endregion
 
@@ -144,7 +149,7 @@ namespace Demo
 
         public static void Columns<T>(Expression<Func<T, object>> expr)
         {
-            CommonTo(Create(expr).ToColumns);
+            CommonTo(Create(expr).ToSelectColumns);
         }
 
         public static void Set<T>(Expression<Func<T>> expr)
