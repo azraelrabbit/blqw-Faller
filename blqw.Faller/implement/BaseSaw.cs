@@ -310,11 +310,11 @@ namespace blqw
             switch (method.Name)
             {
                 case "Trim":
-                    return StringTrim(target.ToSql(), GetTrimArg(args, 1));
+                    return StringTrim(target.ToSql(), GetTrimArg(args, 0));
                 case "TrimEnd":
-                    return StringTrimEnd(target.ToSql(), GetTrimArg(args, 1));
+                    return StringTrimEnd(target.ToSql(), GetTrimArg(args, 0));
                 case "TrimStart":
-                    return StringTrimStart(target.ToSql(), GetTrimArg(args, 1));
+                    return StringTrimStart(target.ToSql(), GetTrimArg(args, 0));
                 case "IsNullOrWhiteSpace":
                     return StringIsNullOrWhiteSpace(args[0].ToSql());
                 case "IsNullOrEmpty":
@@ -338,24 +338,26 @@ namespace blqw
                 return null;
             }
             var arr = (SawDust[])args[index].Value;
-            var buff = new string[arr.Length];
+            var buff = new string[arr.Length + 2];
+            buff[0] = "'";
+            buff[buff.Length - 1] = "'";
             for (int i = 0; i < arr.Length; i++)
             {
                 var it = arr[i];
                 if (it.Type == DustType.Sql)
                 {
-                    buff[i] = (string)it.Value;
+                    throw new NotSupportedException("不支持当前操作");
                 }
                 else if (object.Equals(it.Value, '\''))
                 {
-                    buff[i] = "''''";
+                    buff[i + 1] = "''";
                 }
                 else
                 {
-                    buff[i] = string.Concat("'", it.Value.ToString(), "'");
+                    buff[i + 1] = it.Value.ToString();
                 }
             }
-            return string.Join(" || ", buff);
+            return string.Concat(buff);
         }
 
         #endregion
@@ -457,7 +459,7 @@ namespace blqw
         /// </summary>
         protected virtual string AliasSeparator { get { return "AS"; } }
         #endregion
-        
+
         #region abstract
 
         /// <summary> 返回实体类型所映射的表名
@@ -484,7 +486,7 @@ namespace blqw
         protected abstract string LikeOperation(string val1, string val2, LikeOperator opt);
 
         #endregion
-        
+
         /// <summary> 解释按位运算 与,或,非
         /// </summary>
         /// <param name="val1">操作数1</param>

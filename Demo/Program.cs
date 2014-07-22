@@ -11,21 +11,20 @@ namespace Demo
     {
         static void Main(string[] args)
         {
+            //Expression<Func<User, object>> expr = u => u.Birthday.DayOfWeek == DayOfWeek.Sunday;
+            //var sql = Faller.Create(expr).ToWhere(MsSqlSaw.Instance);
+            //Console.WriteLine(sql);
 
-            Expression<Func<User, object>> expr = u => u.Birthday.DayOfWeek == DayOfWeek.Sunday;
+            //Where<User>(u => u.Name.Trim(',', ';', '|') == "");
+            //Set<User>(() => new User{ ID = (SqlExpr)"seq_user.nextval"});
 
-            var sql = Faller.Create(expr).ToWhere(MsSqlSaw.Instance);
-
-            Console.WriteLine(sql);
-
-            Where<User>(u => u.Name.Trim(',', ' ') == "");
-            //DemoColumnsAndValues();
-            //DemoValues();
-            //DemoSqlExpr();
-            //DemoWhere();
-            //DemoSet();
-            //DemoOrderBy();
-            //DemoColumns();
+            DemoColumnsAndValues();
+            DemoValues();
+            DemoSqlExpr();
+            DemoWhere();
+            DemoSet();
+            DemoOrderBy();
+            DemoColumns();
         }
 
 
