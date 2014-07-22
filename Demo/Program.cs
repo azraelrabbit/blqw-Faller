@@ -15,8 +15,11 @@ namespace Demo
             //var sql = Faller.Create(expr).ToWhere(MsSqlSaw.Instance);
             //Console.WriteLine(sql);
 
-            //Where<User>(u => u.Name.Trim(',', ';', '|') == "");
-            //Set<User>(() => new User{ ID = (SqlExpr)"seq_user.nextval"});
+            Set<User>(() => new User { ID = (SqlExpr)"seq_user.nextval" });
+            Where<User>(u => (SqlExpr)"@@identity" == 5);
+            Where<User>(u => u.Name.Trim(',', ';', '|') == "blqw");
+
+
 
             DemoColumnsAndValues();
             DemoValues();
@@ -133,7 +136,7 @@ namespace Demo
 
         public static void ColumnsAndValues<T>(Expression<Func<T, object>> expr)
         {
-            Console.WriteLine("Expr   : " + expr.Body.ToString());
+            //Console.WriteLine("Expr   : " + expr.Body.ToString());
             var parse = Faller.Create(expr);
             var sqls = parse.ToColumnsAndValues(OracleSaw.Instance);
             Console.WriteLine("Columns : " + sqls.Key);
@@ -158,7 +161,7 @@ namespace Demo
 
         public static void OrderBy<T>(Expression<Func<T, object>> expr, bool asc)
         {
-            Console.WriteLine("Expr   : " + expr.Body.ToString());
+            //Console.WriteLine("Expr   : " + expr.Body.ToString());
             Console.WriteLine("ASC    : " + asc);
             var parse = Faller.Create(expr);
             var sql = parse.ToOrderBy(OracleSaw.Instance, asc);
@@ -168,23 +171,45 @@ namespace Demo
 
         public static void Where<T>(Expression<Func<T, bool>> expr)
         {
-            Console.WriteLine("Expr   : " + expr.Body.ToString());
-            Console.WriteLine();
+            //Console.WriteLine("Expr   : " + expr.Body.ToString());
+            //Console.WriteLine();
             var parse = Faller.Create(expr);
             var sql = parse.ToWhere(OracleSaw.Instance);
             Console.WriteLine("Parsed : " + sql);
-            Console.WriteLine();
-            foreach (var p in parse.Parameters)
+            if (parse.Parameters.Count > 0)
             {
-                Console.WriteLine("参数 {0} : {1}", p.ParameterName, p.Value);
+                Console.WriteLine();
+                foreach (var p in parse.Parameters)
+                {
+                    Console.WriteLine("参数 {0} : {1}", p.ParameterName, p.Value);
+                }
             }
             Console.WriteLine(new string('.', Console.BufferWidth - 1));
         }
 
+        public static void Where<T1, T2>(Expression<Func<T1, T2, bool>> expr)
+        {
+            //Console.WriteLine("Expr   : " + expr.Body.ToString());
+            //Console.WriteLine();
+            var parse = Faller.Create(expr);
+            var sql = parse.ToWhere(OracleSaw.Instance);
+            Console.WriteLine("Parsed : " + sql);
+            if (parse.Parameters.Count > 0)
+            {
+                Console.WriteLine();
+                foreach (var p in parse.Parameters)
+                {
+                    Console.WriteLine("参数 {0} : {1}", p.ParameterName, p.Value);
+                }
+            }
+            Console.WriteLine(new string('.', Console.BufferWidth - 1));
+        }
+
+
         private static IFaller Create(LambdaExpression expr)
         {
-            Console.WriteLine("Expr   : " + expr.Body.ToString());
-            Console.WriteLine();
+            //Console.WriteLine("Expr   : " + expr.Body.ToString());
+            // Console.WriteLine();
             return Faller.Create(expr);
         }
         private static void CommonTo(Func<ISaw, string> func)
@@ -197,6 +222,7 @@ namespace Demo
         class User
         {
             public int ID { get; set; }
+            public int ParentID { get; set; }
             public string Name { get; set; }
             public DateTime Birthday { get; set; }
             public bool Sex { get; set; }

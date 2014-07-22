@@ -22,6 +22,7 @@ namespace Test
         {
             var parse = Faller.Create(expr);
             var sql = parse.ToWhere(OracleSaw.Instance);
+            //parse.Parameters  //解析过程中得到的参数
             Assert.AreEqual(expected, sql);
         }
         void OrderBy(string expected, Expression<Func<User, object>> expr, bool asc)

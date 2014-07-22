@@ -94,6 +94,5 @@ namespace blqw
             }
             return false;
         }
-
     }
 }

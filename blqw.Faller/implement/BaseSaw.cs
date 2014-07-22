@@ -30,13 +30,13 @@ namespace blqw
             switch (bot)
             {
                 case BinaryOperator.Add:
-                    return string.Concat(left, "+", right);
-                case BinaryOperator.Subtract:
-                    return string.Concat(left, "-", right);
-                case BinaryOperator.Divide:
-                    return string.Concat(left, "/", right);
-                case BinaryOperator.Multiply:
-                    return string.Concat(left, "*", right);
+                    return string.Concat(left, " + ", right);
+                case BinaryOperator.Subtract:      
+                    return string.Concat(left, " - ", right);
+                case BinaryOperator.Divide:        
+                    return string.Concat(left, " / ", right);
+                case BinaryOperator.Multiply:      
+                    return string.Concat(left, " * ", right);
                 case BinaryOperator.And:
                     var a = left.Contains(" OR ") || left.Contains(" AND ");
                     var b = right.Contains(" OR ") || right.Contains(" AND ");

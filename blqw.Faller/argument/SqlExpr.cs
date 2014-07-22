@@ -7,7 +7,7 @@ namespace blqw
 {
     /// <summary> Sql表达式
     /// </summary>
-    public class SqlExpr
+    public struct SqlExpr
     {
         /// <summary> 对象中的Sql语句
         /// </summary>
