@@ -44,7 +44,7 @@ namespace blqw
 
         protected override string ParameterPreFix { get { return "@"; } }
 
-        protected override string TimeNow { get { return "SYSDATE"; } }
+        protected override string TimeNow { get { return "GETDATE()"; } }
 
         protected override string LikeOperation(string val1, string val2, LikeOperator opt)
         {
