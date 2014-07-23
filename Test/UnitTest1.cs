@@ -65,42 +65,42 @@ namespace Test
 
 
             //一元表达式转换
-            Where("a.ID = 1", u => (u.ID == 1) == true);
-            Where("a.ID <> 1", u => (u.ID == 1) != true);
-            Where("a.ID <> 1", u => (u.ID == 1) == false);
-            Where("a.ID = 1", u => (u.ID == 1) != false);
-            Where("a.SEX = 1", u => u.Sex);
+            Where("ID = 1", u => (u.ID == 1) == true);
+            Where("ID <> 1", u => (u.ID == 1) != true);
+            Where("ID <> 1", u => (u.ID == 1) == false);
+            Where("ID = 1", u => (u.ID == 1) != false);
+            Where("SEX = 1", u => u.Sex);
 
             //一般
-            Where("a.ID = 1", u => u.ID == 1);
-            Where("a.NAME IS NULL", u => u.Name == null);
+            Where("ID = 1", u => u.ID == 1);
+            Where("NAME IS NULL", u => u.Name == null);
             //IN
-            Where("a.ID IN (1, 2, 3, 4, 5)", u => arr.Contains(u.ID));
-            Where("a.ID IN (1, 2, 3, 5)", u => args.Select(int.Parse).Contains(u.ID));
+            Where("ID IN (1, 2, 3, 4, 5)", u => arr.Contains(u.ID));
+            Where("ID IN (1, 2, 3, 5)", u => args.Select(int.Parse).Contains(u.ID));
             //LIKE
-            Where("a.NAME LIKE '%' || :auto_p0 || '%'", u => u.Name.Contains('a'));
-            Where("a.NAME NOT LIKE '%' || :auto_p0 || '%'", u => !u.Name.Contains("a"));
-            Where("a.NAME LIKE '%' || :auto_p0", u => u.Name.EndsWith("a"));
+            Where("NAME LIKE '%' || :auto_p0 || '%'", u => u.Name.Contains('a'));
+            Where("NAME NOT LIKE '%' || :auto_p0 || '%'", u => !u.Name.Contains("a"));
+            Where("NAME LIKE '%' || :auto_p0", u => u.Name.EndsWith("a"));
 
             //类型转换
-            Where("a.ID = 1", u => u.ID == int.Parse(id));
-            Where("a.ID = 1", u => u.ID == Convert.ToInt32(id));
-            Where("TO_CHAR(a.ID) = :auto_p0", u => u.ID.ToString() == id);
+            Where("ID = 1", u => u.ID == int.Parse(id));
+            Where("ID = 1", u => u.ID == Convert.ToInt32(id));
+            Where("TO_CHAR(ID) = :auto_p0", u => u.ID.ToString() == id);
 
             //处理时间类型
-            Where("a.BIRTHDAY < SYSDATE", u => u.Birthday < DateTime.Now);
-            Where("TO_CHAR(a.BIRTHDAY,'yyyy-mm-dd HH:mi:ss') = TO_CHAR(SYSDATE,'yyyy-mm-dd HH:mi:ss')", u => u.Birthday.ToString() == DateTime.Now.ToString());
-            Where("TO_CHAR(a.BIRTHDAY,'HHmiss') = TO_CHAR(SYSDATE,'HHmiss')", u => u.Birthday.ToString("HHmmss") == DateTime.Now.ToString("HHmmss"));
-            Where("TO_CHAR(a.BIRTHDAY,'yyyy-MM-dd') = :auto_p0", u => u.Birthday.ToShortDateString() == date.ToShortDateString());
-            Where("EXTRACT(DAY FROM a.BIRTHDAY) = 1", u => u.Birthday.Day == 1);
+            Where("BIRTHDAY < SYSDATE", u => u.Birthday < DateTime.Now);
+            Where("TO_CHAR(BIRTHDAY,'yyyy-mm-dd HH:mi:ss') = TO_CHAR(SYSDATE,'yyyy-mm-dd HH:mi:ss')", u => u.Birthday.ToString() == DateTime.Now.ToString());
+            Where("TO_CHAR(BIRTHDAY,'HHmiss') = TO_CHAR(SYSDATE,'HHmiss')", u => u.Birthday.ToString("HHmmss") == DateTime.Now.ToString("HHmmss"));
+            Where("TO_CHAR(BIRTHDAY,'yyyy-MM-dd') = :auto_p0", u => u.Birthday.ToShortDateString() == date.ToShortDateString());
+            Where("EXTRACT(DAY FROM BIRTHDAY) = 1", u => u.Birthday.Day == 1);
 
 
 
-            Where("trim(a.NAME) = :auto_p0", u => u.Name.Trim() == "");
-            Where("a.NAME IS NULL OR a.NAME = ''", u => string.IsNullOrEmpty(u.Name));
+            Where("trim(NAME) = :auto_p0", u => u.Name.Trim() == "");
+            Where("NAME IS NULL OR NAME = ''", u => string.IsNullOrEmpty(u.Name));
 
             //组合表达式
-            Where("((a.ID IN (1, 2, 3, 4, 5) AND (a.NAME LIKE '%' || :auto_p0 || '%' OR a.NAME IS NULL)) AND BITAND(a.ID, 4) = 4) AND a.BIRTHDAY < SYSDATE",
+            Where("((ID IN (1, 2, 3, 4, 5) AND (NAME LIKE '%' || :auto_p0 || '%' OR NAME IS NULL)) AND BITAND(ID, 4) = 4) AND BIRTHDAY < SYSDATE",
                 u => !arr.Contains(u.ID) &&
                    (!u.Name.Contains("a") == false || u.Name == null) &&
                    (u.ID & 4) == 4 &&
@@ -112,9 +112,9 @@ namespace Test
         [TestMethod]
         public void OrderByTest()
         {
-            OrderBy("a.NAME ASC, a.ID ASC", u => new { u.Name, u.ID }, true);
-            OrderBy("a.NAME ASC, a.ID ASC", u => new object[] { u.Name, u.ID }, true);
-            OrderBy("a.NAME ASC", u => u.Name, true);
+            OrderBy("NAME ASC, ID ASC", u => new { u.Name, u.ID }, true);
+            OrderBy("NAME ASC, ID ASC", u => new object[] { u.Name, u.ID }, true);
+            OrderBy("NAME ASC", u => u.Name, true);
             OrderBy("SYSDATE DESC", u => DateTime.Now, false);
             OrderBy("rownum DESC", u => (SqlExpr)"rownum", false);
             OrderBy("1 DESC", u => 1, false);
@@ -132,12 +132,12 @@ namespace Test
         [TestMethod]
         public void ColumnsTest()
         {
-            Columns("a.*", u => null);
-            Columns("a.NAME", u => u.Name);
-            Columns("a.NAME", u => new { u.Name });
-            Columns("a.ID, a.SEX", u => new object[] { u.ID, u.Sex });
-            Columns("a.ID, a.SEX", u => new { u.ID, u.Sex });
-            Columns("a.NAME UserName", u => new { UserName = u.Name });
+            Columns("*", u => null);
+            Columns("NAME", u => u.Name);
+            Columns("NAME", u => new { u.Name });
+            Columns("ID, SEX", u => new object[] { u.ID, u.Sex });
+            Columns("ID, SEX", u => new { u.ID, u.Sex });
+            Columns("NAME UserName", u => new { UserName = u.Name });
             Columns("SYSDATE DateTime, 1 X", u => new { DateTime = DateTime.Now, X = 1 });
         }
 
@@ -147,19 +147,19 @@ namespace Test
             Columns("rownum row_id", u => new { row_id = (SqlExpr)"rownum" });
             Set("ID = rownum", () => new User { ID = (SqlExpr)"rownum" });
             OrderBy("rownum DESC", u => (SqlExpr)"rownum", false);
-            Where("a.ID = rownum", u => u.ID == (SqlExpr)"rownum");
+            Where("ID = rownum", u => u.ID == (SqlExpr)"rownum");
             Where("rownum < 10", u => (SqlExpr)"rownum < 10");
-            Where("rownum < 10 AND a.ID > 10", u => (SqlExpr)"rownum < 10" && u.ID > 10);
+            Where("rownum < 10 AND ID > 10", u => (SqlExpr)"rownum < 10" && u.ID > 10);
         }
 
         [TestMethod]
         public void ValuesTest()
         {
-            Values("a.NAME, a.ID", u => new object[] { u.Name, u.ID });
+            Values("NAME, ID", u => new object[] { u.Name, u.ID });
             Values("SYSDATE", u => DateTime.Now);
             Values("'xyz'", u => (SqlExpr)"'xyz'");
             Values("1, 2, 3, 4, 5", u => new int[] { 1, 2, 3, 4, 5 });
-            Values("a.BIRTHDAY", u => u.Birthday);
+            Values("BIRTHDAY", u => u.Birthday);
         }
 
         [TestMethod]

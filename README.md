@@ -9,6 +9,13 @@ Faller(砍树人)是一个轻量级的表达式树解析框架
 [OracleSaw](https://code.csdn.net/jy02305022/blqw-faller/tree/master/blqw.Faller/implement/OracleSaw.cs)  
   
 ## 更新说明  
+* 2014.07.23  
+增加了对异常的处理
+修正初始化Array可能造成的错误
+优化初始化Array的操作
+确定不支持初始化List表达式, 如`Where<User>(u => new List<int>() {1,2,3,4,5 }.Contains(u.ID));`将不被支持,可以使用`Where<User>(u => new []{1,2,3,4,5 }.Contains(u.ID));`代替  
+优化表达式中如果只有一个泛型实体参数,则sql中不使用别名
+修正SawDust类型的值嵌套可能带来的问题
 * 2014.07.22  
 整理代码  
 完善注释  

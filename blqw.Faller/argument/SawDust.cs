@@ -17,8 +17,17 @@ namespace blqw
         /// <param name="value">结果值</param>
         internal SawDust(Faller faller, DustType type, Object value)
         {
-            Type = type;
-            Value = value;
+            if (value is SawDust)
+            {
+                var dust = (SawDust)value;
+                Value = dust.Value;
+                Type = dust.Type;
+            }
+            else
+            {
+                Type = type;
+                Value = value;
+            }
             Faller = faller;  
         }
 

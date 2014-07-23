@@ -26,6 +26,7 @@ namespace blqw
             return new Faller() {
                 _lambda = expr,
                 Parameters = new List<DbParameter>(),
+                EnabledAlias = expr.Parameters.Count > 1
             };
         }
 
@@ -36,7 +37,18 @@ namespace blqw
             _entry = WHERE;
             _saw = saw;
             _state = new State();
-            return GetSql(_lambda.Body);
+            try
+            {
+                return GetSql(_lambda.Body);
+            }
+            catch (Exception ex)
+            {
+                if (_throw == false)
+                {
+                    Throw(ex);
+                }
+                throw;
+            }
         }
 
         public string ToOrderBy(ISaw saw, bool asc)
@@ -66,11 +78,22 @@ namespace blqw
             {
                 return "";
             }
-            if (expr.Bindings.Count == 1)
+            try
             {
-                return ToSets(expr.Bindings[0]);
+                if (expr.Bindings.Count == 1)
+                {
+                    return ToSets(expr.Bindings[0]);
+                }
+                return string.Join(", ", expr.Bindings.Select(ToSets));
             }
-            return string.Join(", ", expr.Bindings.Select(ToSets));
+            catch (Exception ex)
+            {
+                if (_throw == false)
+                {
+                    Throw(ex);
+                }
+                throw;
+            }
         }
 
         public string ToSelectColumns(ISaw saw)
@@ -79,29 +102,40 @@ namespace blqw
             _saw = saw;
             _state = new State();
             var expr = _lambda.Body;
-            if (expr == null ||
-                (expr.NodeType == ExpressionType.Constant) &&
-                ((ConstantExpression)expr).Value == null)
+            try
             {
-                return ToColumnAll();
-            }
-            Parse(expr);
-
-            if (_state.DustType == DustType.Array)
-            {
-                var arr = _state.Array as SawDust[];
-                if (arr != null)
+                if (expr == null ||
+                       (expr.NodeType == ExpressionType.Constant) &&
+                       ((ConstantExpression)expr).Value == null)
                 {
-                    return string.Join(", ", arr.Select(it => it.ToSql()));
+                    return ToColumnAll();
+                }
+                Parse(expr);
+
+                if (_state.DustType == DustType.Array)
+                {
+                    var arr = _state.Array as SawDust[];
+                    if (arr != null)
+                    {
+                        return string.Join(", ", arr.Select(it => it.ToSql()));
+                    }
+                    else
+                    {
+                        return string.Join(", ", _state.Array.Cast<object>().Select(GetSql));
+                    }
                 }
                 else
                 {
-                    return string.Join(", ", _state.Array.Cast<object>().Select(GetSql));
+                    return GetSql();
                 }
             }
-            else
+            catch (Exception ex)
             {
-                return GetSql();
+                if (_throw == false)
+                {
+                    Throw(ex);
+                }
+                throw;
             }
         }
 
@@ -119,34 +153,45 @@ namespace blqw
             _saw = saw;
             _state = new State();
             var expr = _lambda.Body;
-            Parse(expr);
-            if (_state.DustType == DustType.Array)
+            try
             {
-                var arr = _state.Array as SawDust[];
-                if (replace == null)
+                Parse(expr);
+                if (_state.DustType == DustType.Array)
                 {
-                    if (arr != null)
+                    var arr = _state.Array as SawDust[];
+                    if (replace == null)
                     {
-                        return string.Join(", ", arr.Select(it => it.ToSql()));
+                        if (arr != null)
+                        {
+                            return string.Join(", ", arr.Select(it => it.ToSql()));
+                        }
+                        return string.Join(", ", _state.Array.Cast<object>().Select(GetSql));
                     }
-                    return string.Join(", ", _state.Array.Cast<object>().Select(GetSql));
+                    else
+                    {
+                        if (arr != null)
+                        {
+                            return string.Join(", ", arr.Select(it => replace(it.ToSql())));
+                        }
+                        return string.Join(", ", _state.Array.Cast<object>().Select(it => replace(GetSql(it))));
+                    }
+                }
+                else if (replace == null)
+                {
+                    return GetSql(expr);
                 }
                 else
                 {
-                    if (arr != null)
-                    {
-                        return string.Join(", ", arr.Select(it => replace(it.ToSql())));
-                    }
-                    return string.Join(", ", _state.Array.Cast<object>().Select(it => replace(GetSql(it))));
+                    return replace(GetSql(expr));
                 }
             }
-            else if (replace == null)
+            catch (Exception ex)
             {
-                return GetSql(expr);
-            }
-            else
-            {
-                return replace(GetSql(expr));
+                if (_throw == false)
+                {
+                    Throw(ex);
+                }
+                throw;
             }
         }
 
@@ -196,6 +241,10 @@ namespace blqw
 
         #endregion
 
+        /// <summary> 是否使用别名
+        /// </summary>
+        public bool EnabledAlias { get; set; }
+
         #region EntryFlags
         private const int WHERE = 1;
         private const int ORDERBY = 2;
@@ -224,6 +273,9 @@ namespace blqw
         /// <summary> 解析提供程序
         /// </summary>
         private ISaw _saw;
+        /// <summary> 是否已抛出异常
+        /// </summary>
+        private bool _throw = false;
         #endregion
 
         #region State
@@ -698,12 +750,8 @@ namespace blqw
                     {
                         if (expr.Member is PropertyInfo)
                         {
-                            var method = ((PropertyInfo)expr.Member).GetGetMethod();
-                            if (method == null)
-                            {
-                                Throw(expr);
-                            }
-                            _state.Sql = _saw.ParseMethod(method, GetSawDust(), new SawDust[0]);
+                            var mem = ((PropertyInfo)expr.Member);
+                            _state.Sql = _saw.ParseMethod(mem.GetGetMethod(true) ?? mem.GetSetMethod(true), GetSawDust(), new SawDust[0]);
                             return;
                         }
                     }
@@ -733,11 +781,35 @@ namespace blqw
         {
             var exps = expr.Expressions;
             var length = expr.Expressions.Count;
-            var arr = new SawDust[length];
+            var arr = Array.CreateInstance(expr.Type.GetElementType(), length);
             for (int i = 0; i < length; i++)
             {
                 Parse(exps[i]);
-                arr[i] = GetSawDust();
+                if (_state.DustType != DustType.Sql)
+                {
+                    arr.SetValue(_state.Object, i);
+                }
+                else
+                {
+                    var arr1 = new SawDust[length];
+                    var dust = GetSawDust();
+                    if (i > 0)
+                    {
+                        _state.Object = arr.GetValue(0);
+                        arr1[0] = new SawDust(this, _state.DustType, arr.GetValue(0));
+                        for (int j = 1; j < i; j++)
+                        {
+                            arr1[j] = new SawDust(this, _state.DustType, arr.GetValue(j));
+                        }
+                    }
+                    for (; i < length; i++)
+                    {
+                        Parse(exps[i]);
+                        arr1[i] = GetSawDust();
+                    }
+                    _state.Array = arr1;
+                    return;
+                }
             }
             _state.Array = arr;
         }
@@ -823,15 +895,17 @@ namespace blqw
 
             var method = expr.Method;
             //表达式树有时会丢失方法的调用方类型,这时需要重新反射方法
-            if (method.ReflectedType == typeof(object) && expr.Object != null)
+            if (object.ReferenceEquals(method.ReflectedType, typeof(object)) && expr.Object != null)
             {
                 method = expr.Object.Type.GetMethod(expr.Method.Name, expr.Method.GetParameters().Select(it => it.ParameterType).ToArray());
             }
 
             if (object.ReferenceEquals(method.ReflectedType, typeof(string)))
             {
-                _state.Sql = ParseStringMethod(method, target, args);
-                return;
+                if (ParseStringMethod(method, target, args))
+                {
+                    return;
+                }
             }
             else if (object.ReferenceEquals(method.ReflectedType, typeof(System.Linq.Enumerable)))
             {
@@ -855,8 +929,10 @@ namespace blqw
                     }
                     else if (args[0].Type == DustType.Sql && args[1].Type == DustType.String)
                     {
-                        _state.Sql = ParseStringMethod(method, args[0], new SawDust[] { args[1] });
-                        return;
+                        if (ParseStringMethod(method, args[0], new SawDust[] { args[1] }))
+                        {
+                            return;
+                        }
                     }
                 }
             }
@@ -872,29 +948,29 @@ namespace blqw
         #region ParseMethods
 
 
-        private string ParseStringMethod(MethodInfo method, SawDust target, SawDust[] args)
+        private bool ParseStringMethod(MethodInfo method, SawDust target, SawDust[] args)
         {
             if (args.Length >= 1)
             {
+                BinaryOperator opt;
                 switch (method.Name)
                 {
                     case "StartsWith":
-                        if (_state.UnaryNot)
-                            return _saw.BinaryOperation(target.ToSql(), BinaryOperator.NotStartWith, args[0].ToSql());
-                        return _saw.BinaryOperation(target.ToSql(), BinaryOperator.StartWith, args[0].ToSql());
-                    case "EndsWith":
-                        if (_state.UnaryNot)
-                            return _saw.BinaryOperation(target.ToSql(), BinaryOperator.NotEndWith, args[0].ToSql());
-                        return _saw.BinaryOperation(target.ToSql(), BinaryOperator.EndWith, args[0].ToSql());
-                    case "Contains":
-                        if (_state.UnaryNot)
-                            return _saw.BinaryOperation(target.ToSql(), BinaryOperator.NotContains, args[0].ToSql());
-                        return _saw.BinaryOperation(target.ToSql(), BinaryOperator.Contains, args[0].ToSql());
-                    default:
+                        opt = _state.UnaryNot ? BinaryOperator.NotStartWith : BinaryOperator.StartWith;
                         break;
+                    case "EndsWith":
+                        opt = _state.UnaryNot ? BinaryOperator.NotEndWith : BinaryOperator.EndWith;
+                        break;
+                    case "Contains":
+                        opt = _state.UnaryNot ? BinaryOperator.NotContains : BinaryOperator.Contains;
+                        break;
+                    default:
+                        return false;
                 }
+                _state.Sql = _saw.BinaryOperation(target.ToSql(), opt, args[0].ToSql());
+                return true;
             }
-            return _saw.ParseMethod(method, target, args);
+            return false;
         }
 
 
@@ -917,11 +993,11 @@ namespace blqw
             return _saw.AddBoolean(value, Parameters);
         }
 
-
         /// <summary> 根据索引获取表别名 a,b,c,d,e,f...类推
         /// </summary>
         private string GetAlias(int index)
         {
+            if (EnabledAlias == false) return null;
             if (index > 26)
             {
                 throw new NotSupportedException("对象过多");
@@ -1045,6 +1121,11 @@ namespace blqw
                     if (call) call = false;
                     args[i] = new SawDust(this, DustType.Sql, _state.Sql);
                 }
+                else if (_state.DustType == DustType.Array && _state.Array is SawDust[])
+                {
+                    if (call) call = false;
+                    args[i] = new SawDust(this, DustType.Array, _state.Array);
+                }
                 else
                 {
                     args[i] = GetSawDust();
@@ -1152,52 +1233,53 @@ namespace blqw
 
         /// <summary> 强制抛出当前表达式的解析异常
         /// </summary
-        private void Throw()
+        private void Throw(Exception ex = null)
         {
-            Throw(_currExpr);
+            Throw(_currExpr, ex);
         }
 
         /// <summary> 强制抛出表达式解析异常
         /// </summary>
-        private void Throw(Expression expr)
+        private void Throw(Expression expr, Exception ex = null)
         {
             if (expr == null)
             {
-                Throw("缺失表达式");
+                Throw("缺失表达式", ex);
             }
-            Throw("无法解析表达式 => " + expr.ToString());
+            Throw("无法解析表达式 => " + expr.ToString(), ex);
         }
 
         /// <summary> 
         /// </summary>
         /// <param name="message"></param>
-        private void Throw(string message)
+        private void Throw(string message, Exception ex = null)
         {
+            var info = ex == null ? "失败" : "错误(详见内部异常)";
             switch (_entry)
             {
                 case WHERE:
-                    message = "ToWhere失败:\n" + message;
+                    message = "ToWhere " + info + ":\n" + message;
                     break;
                 case ORDERBY:
-                    message = "ToOrderBy失败:\n" + message;
+                    message = "ToOrderBy " + info + ":\n" + message;
                     break;
                 case SETS:
-                    message = "ToSets失败:\n" + message;
+                    message = "ToSets " + info + ":\n" + message;
                     break;
                 case COLUMNS:
-                    message = "ToColumns失败:\n" + message;
+                    message = "ToColumns " + info + ":\n" + message;
                     break;
                 case VALUES:
-                    message = "ToValues失败:\n" + message;
+                    message = "ToValues " + info + ":\n" + message;
                     break;
                 case COLUMNS_VALUES:
-                    message = "ToColumnsAndValues失败:\n" + message;
+                    message = "ToColumnsAndValues " + info + ":\n" + message;
                     break;
                 default:
                     break;
             }
-
-            throw new NotSupportedException(message);
+            _throw = true;
+            throw new NotSupportedException(message, ex);
         }
 
         #endregion
@@ -1312,6 +1394,14 @@ namespace blqw
             if (_state.IsNull())
             {
                 var length = _lambda.Parameters.Count;
+                if (length == 0)
+                {
+                    return null;
+                }
+                if (length == 1)
+                {
+                    return "*";
+                }
                 if (length > 26)
                 {
                     throw new NotSupportedException("对象过多");

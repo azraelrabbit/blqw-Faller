@@ -15,11 +15,7 @@ namespace Demo
             //var sql = Faller.Create(expr).ToWhere(MsSqlSaw.Instance);
             //Console.WriteLine(sql);
 
-            Set<User>(() => new User { ID = (SqlExpr)"seq_user.nextval" });
-            Where<User>(u => (SqlExpr)"@@identity" == 5);
-            Where<User>(u => u.Name.Trim(',', ';', '|') == "blqw");
-
-
+            Where<User>(u => new List<int>() {1,2,3,4,5 }.Contains(u.ID));
 
             DemoColumnsAndValues();
             DemoValues();
@@ -31,8 +27,6 @@ namespace Demo
         }
 
 
-
-        #region Demo
 
         static void DemoSqlExpr()
         {
@@ -127,14 +121,15 @@ namespace Demo
         {
             ColumnsAndValues<User>(u => new User { ID = (SqlExpr)"seq_table.nextval", Name = "aaaa", Sex = true, Birthday = DateTime.Now });
         }
-        #endregion
 
-        public static void Values<T>(Expression<Func<T, object>> expr)
+
+        #region private
+
+        private static void Values<T>(Expression<Func<T, object>> expr)
         {
-            CommonTo(Create(expr).ToValues);
+            To(Create(expr).ToValues);
         }
-
-        public static void ColumnsAndValues<T>(Expression<Func<T, object>> expr)
+        private static void ColumnsAndValues<T>(Expression<Func<T, object>> expr)
         {
             //Console.WriteLine("Expr   : " + expr.Body.ToString());
             var parse = Faller.Create(expr);
@@ -148,18 +143,15 @@ namespace Demo
             }
             Console.WriteLine(new string('.', Console.BufferWidth - 1));
         }
-
-        public static void Columns<T>(Expression<Func<T, object>> expr)
+        private static void Columns<T>(Expression<Func<T, object>> expr)
         {
-            CommonTo(Create(expr).ToSelectColumns);
+            To(Create(expr).ToSelectColumns);
         }
-
-        public static void Set<T>(Expression<Func<T>> expr)
+        private static void Set<T>(Expression<Func<T>> expr)
         {
-            CommonTo(Create(expr).ToSets);
+            To(Create(expr).ToSets);
         }
-
-        public static void OrderBy<T>(Expression<Func<T, object>> expr, bool asc)
+        private static void OrderBy<T>(Expression<Func<T, object>> expr, bool asc)
         {
             //Console.WriteLine("Expr   : " + expr.Body.ToString());
             Console.WriteLine("ASC    : " + asc);
@@ -168,8 +160,7 @@ namespace Demo
             Console.WriteLine("Parsed : " + sql);
             Console.WriteLine(new string('.', Console.BufferWidth - 1));
         }
-
-        public static void Where<T>(Expression<Func<T, bool>> expr)
+        private static void Where<T>(Expression<Func<T, bool>> expr)
         {
             //Console.WriteLine("Expr   : " + expr.Body.ToString());
             //Console.WriteLine();
@@ -186,8 +177,7 @@ namespace Demo
             }
             Console.WriteLine(new string('.', Console.BufferWidth - 1));
         }
-
-        public static void Where<T1, T2>(Expression<Func<T1, T2, bool>> expr)
+        private static void Where<T1, T2>(Expression<Func<T1, T2, bool>> expr)
         {
             //Console.WriteLine("Expr   : " + expr.Body.ToString());
             //Console.WriteLine();
@@ -204,20 +194,20 @@ namespace Demo
             }
             Console.WriteLine(new string('.', Console.BufferWidth - 1));
         }
-
-
         private static IFaller Create(LambdaExpression expr)
         {
             //Console.WriteLine("Expr   : " + expr.Body.ToString());
             // Console.WriteLine();
             return Faller.Create(expr);
         }
-        private static void CommonTo(Func<ISaw, string> func)
+        private static void To(Func<ISaw, string> func)
         {
             var sql = func(OracleSaw.Instance);
             Console.WriteLine("Parsed : " + sql);
             Console.WriteLine(new string('.', Console.BufferWidth - 1));
         }
+
+        #endregion
 
         class User
         {
