@@ -13,16 +13,23 @@ namespace blqw
     /// </summary>
     public sealed class Faller : IFaller
     {
+        private static void NotNull<T>(T value, string argName)
+            where T : class
+        {
+            if (value == null)
+            {
+                throw new ArgumentNullException(argName);
+            }
+        }
+
         private Faller() { }
         /// <summary> 创建一个解析器
         /// </summary>
         /// <param name="expr">lambda表达式</param>
         public static IFaller Create(LambdaExpression expr)
         {
-            if (expr.Body == null)
-            {
-                throw new ArgumentNullException("expr");
-            }
+            NotNull(expr,"expr");
+            NotNull(expr.Body, "expr.Body");
             return new Faller() {
                 _lambda = expr,
                 Parameters = new List<DbParameter>(),
@@ -34,6 +41,7 @@ namespace blqw
 
         public string ToWhere(ISaw saw)
         {
+            NotNull(saw, "saw");
             _entry = WHERE;
             _saw = saw;
             _state = new State();
@@ -53,6 +61,7 @@ namespace blqw
 
         public string ToOrderBy(ISaw saw, bool asc)
         {
+            NotNull(saw, "saw");
             _entry = ORDERBY;
             _saw = saw;
             _state = new State();
@@ -66,6 +75,7 @@ namespace blqw
 
         public string ToSets(ISaw saw)
         {
+            NotNull(saw, "saw");
             _entry = SETS;
             _saw = saw;
             _state = new State();
@@ -98,6 +108,7 @@ namespace blqw
 
         public string ToSelectColumns(ISaw saw)
         {
+            NotNull(saw, "saw");
             _entry = COLUMNS;
             _saw = saw;
             _state = new State();
@@ -141,11 +152,13 @@ namespace blqw
 
         public string ToValues(ISaw saw)
         {
+            NotNull(saw, "saw");
             return ToValues(saw, null);
         }
 
         public string ToValues(ISaw saw, Func<string, string> replace)
         {
+            NotNull(saw, "saw");
             if (_entry == 0)
             {
                 _entry = VALUES;
@@ -197,6 +210,7 @@ namespace blqw
 
         public KeyValuePair<string, string> ToColumnsAndValues(ISaw saw)
         {
+            NotNull(saw, "saw");
             _entry = COLUMNS_VALUES;
             _saw = saw;
             _state = new State();
@@ -356,6 +370,10 @@ namespace blqw
                         case DustType.Binary:
                             return _binary;
                         case DustType.String:
+                            if (_object is char)
+                            {
+                                return _object;
+                            }
                             return _string;
                         case DustType.Sql:
                         case DustType.Undefined:
@@ -365,6 +383,7 @@ namespace blqw
                 }
                 set
                 {
+                    _object = null;
                     var conv = value as IConvertible;
                     if (conv != null)
                     {
@@ -387,8 +406,12 @@ namespace blqw
                                     _boolean = conv.ToBoolean(null);
                                     break;
                                 case TypeCode.String:
+                                    DustType = DustType.String;
+                                    _string = conv.ToString(null);
+                                    break;
                                 case TypeCode.Char:
                                     DustType = DustType.String;
+                                    _object = value;
                                     _string = conv.ToString(null);
                                     break;
                                 case TypeCode.DateTime:
