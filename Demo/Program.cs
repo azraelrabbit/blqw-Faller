@@ -11,21 +11,19 @@ namespace Demo
     {
         static void Main(string[] args)
         {
-            //Expression<Func<User, object>> expr = u => u.Birthday.DayOfWeek == DayOfWeek.Sunday;
-            //var sql = Faller.Create(expr).ToWhere(MsSqlSaw.Instance);
-            //Console.WriteLine(sql);
-            Where<User>(o => "aaaa,bbb,nnn".Split(',').Contains(o.Name));
-
-            Where<User>(u => new List<int>() {1,2,3,4,5 }.Contains(u.ID));
-
-            DemoColumnsAndValues();
-            DemoValues();
-            DemoSqlExpr();
-            DemoWhere();
-            DemoSet();
-            DemoOrderBy();
-            DemoColumns();
+            var users = UserBLL.GetUsers(u => u.ID == 1);
+            Console.WriteLine(users[0].Name);
+            //DemoColumnsAndValues();
+            //DemoValues();
+            //DemoSqlExpr();
+            //DemoWhere();
+            //DemoSet();
+            //DemoOrderBy();
+            //DemoColumns();
         }
+
+
+
 
 
 
@@ -210,13 +208,6 @@ namespace Demo
 
         #endregion
 
-        class User
-        {
-            public int ID { get; set; }
-            public int ParentID { get; set; }
-            public string Name { get; set; }
-            public DateTime Birthday { get; set; }
-            public bool Sex { get; set; }
-        }
+        
     }
 }

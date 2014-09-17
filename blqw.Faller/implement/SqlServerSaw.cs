@@ -13,7 +13,7 @@ namespace blqw
     {
         public readonly static SqlServerSaw Instance = new SqlServerSaw();
 
-        private SqlServerSaw() : base(System.Data.SqlClient.SqlClientFactory.Instance) { }
+        protected SqlServerSaw() : base(System.Data.SqlClient.SqlClientFactory.Instance) { }
 
         private static HashSet<string> KeyWords = InitKeyWords();
 

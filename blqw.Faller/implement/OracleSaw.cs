@@ -14,7 +14,7 @@ namespace blqw
     {
         public static OracleSaw Instance = new OracleSaw();
 
-        private OracleSaw() : base(OracleClientFactory.Instance) { }
+        protected OracleSaw() : base(OracleClientFactory.Instance) { }
 
         private static HashSet<string> KeyWords = InitKeyWords();
 
