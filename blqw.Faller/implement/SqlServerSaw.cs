@@ -9,11 +9,11 @@ using System.Reflection;
 
 namespace blqw
 {
-    public class MsSqlSaw : BaseSaw
+    public class SqlServerSaw : BaseSaw
     {
-        public static MsSqlSaw Instance = new MsSqlSaw();
+        public readonly static SqlServerSaw Instance = new SqlServerSaw();
 
-        private MsSqlSaw() : base(System.Data.SqlClient.SqlClientFactory.Instance) { }
+        private SqlServerSaw() : base(System.Data.SqlClient.SqlClientFactory.Instance) { }
 
         private static HashSet<string> KeyWords = InitKeyWords();
 

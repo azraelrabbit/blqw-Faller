@@ -49,6 +49,8 @@ namespace blqw
             _factory = factory;
         }
 
+        #region 
+
         /// <summary> 解释二元操作
         /// </summary>
         /// <param name="left">左元素</param>
@@ -232,6 +234,8 @@ namespace blqw
             }
             return sql;
         }
+        
+        #endregion
 
         #region private ParseMethods
         /// <summary> 解释与数字类型相关的方法,并将方法分配给指定的方法

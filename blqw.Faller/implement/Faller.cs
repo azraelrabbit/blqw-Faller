@@ -33,7 +33,7 @@ namespace blqw
             return new Faller() {
                 _lambda = expr,
                 Parameters = new List<DbParameter>(),
-                EnabledAlias = expr.Parameters.Count > 1
+                EnabledAlias = expr.Parameters.Count > 1  //当对象只有1个的时候不使用别名
             };
         }
 
@@ -293,10 +293,13 @@ namespace blqw
         #endregion
 
         #region State
-        /// <summary> 解析器状态数据
+        /// <summary> 解析器状态数据,算是一种状态机
         /// </summary>
         private class State
         {
+            /// <summary> 验证当前状态
+            /// </summary>
+            /// <param name="type"></param>
             private void Check(DustType type)
             {
                 if (DustType != type)
@@ -312,6 +315,8 @@ namespace blqw
                 UnaryNot = !UnaryNot;
             }
 
+            /// <summary> 保存当前递归层数,最大100
+            /// </summary>
             private int _layer;
             /// <summary> 增加递归层数
             /// </summary>
@@ -323,6 +328,7 @@ namespace blqw
                 }
                 DustType = blqw.DustType.Undefined;
             }
+
             /// <summary> 减少递归层数
             /// </summary>
             public void DecreaseLayer()
@@ -330,12 +336,24 @@ namespace blqw
                 _layer--;
             }
 
+            /// <summary> 当前解析结果的类型
+            /// </summary>
             public DustType DustType { get; private set; }
             /// <summary> 在解析一元表达式时用于控制当前状态
             /// </summary>
             public bool UnaryNot { get; private set; }
 
+            #region Value
+
             private string _sql;
+            private object _object;
+            private IConvertible _number;
+            private IEnumerable _array;
+            private bool _boolean;
+            private DateTime _datetime;
+            private byte[] _binary;
+            private string _string;
+
             public string Sql
             {
                 get
@@ -350,7 +368,6 @@ namespace blqw
                 }
             }
 
-            private object _object;
             public object Object
             {
                 get
@@ -446,7 +463,6 @@ namespace blqw
                 }
             }
 
-            private IConvertible _number;
             public IConvertible Number
             {
                 get
@@ -461,7 +477,6 @@ namespace blqw
                 }
             }
 
-            private IEnumerable _array;
             public IEnumerable Array
             {
                 get
@@ -476,7 +491,6 @@ namespace blqw
                 }
             }
 
-            private bool _boolean;
             public bool Boolean
             {
                 get
@@ -491,7 +505,6 @@ namespace blqw
                 }
             }
 
-            private DateTime _datetime;
             public DateTime DateTime
             {
                 get
@@ -506,7 +519,6 @@ namespace blqw
                 }
             }
 
-            private byte[] _binary;
             public byte[] Binary
             {
                 get
@@ -521,7 +533,6 @@ namespace blqw
                 }
             }
 
-            private string _string;
             public string String
             {
                 get
@@ -536,6 +547,11 @@ namespace blqw
                 }
             }
 
+            #endregion
+
+            /// <summary> 判断值是否为空
+            /// </summary>
+            /// <returns></returns>
             public bool IsNull()
             {
                 switch (DustType)
@@ -546,6 +562,8 @@ namespace blqw
                         return _array == null;
                     case DustType.String:
                         return _string == null;
+                    case DustType.Binary:
+                        return _binary == null;
                     default:
                         return false;
                 }
@@ -1151,7 +1169,7 @@ namespace blqw
                 }
                 else
                 {
-                    args[i] = GetSawDust();
+                    args[i] = new SawDust(this, _state.DustType, _state.Object);
                 }
             }
 

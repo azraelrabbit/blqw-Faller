@@ -17,7 +17,7 @@ namespace blqw
         /// <param name="value">结果值</param>
         internal SawDust(Faller faller, DustType type, Object value)
         {
-            if (value is SawDust)
+            if (type == DustType.Object && value is SawDust)
             {
                 var dust = (SawDust)value;
                 Value = dust.Value;
@@ -29,6 +29,8 @@ namespace blqw
                 Value = value;
             }
             Faller = faller;
+            _toSqled = false;
+            _sql = null;
         }
 
         /// <summary> 解析组件
@@ -43,28 +45,47 @@ namespace blqw
         /// </summary>
         public readonly Object Value;
 
+        /// <summary> 是否已经执行了toSql
+        /// </summary>
+        private bool _toSqled;
+
+        /// <summary> tosql之后的sql语句
+        /// </summary>
+        private string _sql;
+
         /// <summary> 无论结果类型 强制转换为Sql语句,DustType.Undefined抛出异常
         /// </summary>
         public string ToSql()
         {
+            if (_toSqled)
+            {
+                return _sql;
+            }
             switch (Type)
             {
                 case DustType.Sql:
-                    return (string)Value;
+                    _sql = (string)Value;
+                    break;
                 case DustType.Number:
-                    return Faller.AddNumber((IConvertible)Value);
+                    _sql = Faller.AddNumber((IConvertible)Value);
+                    break;
                 case DustType.Array:
-                    return Faller.GetSql(Value);
+                    _sql = Faller.GetSql(Value);
+                    break;
                 case DustType.Boolean:
-                    return Faller.AddBoolean((bool)Value);
+                    _sql = Faller.AddBoolean((bool)Value);
+                    break;
                 case DustType.Object:
                 case DustType.DateTime:
                 case DustType.Binary:
                 case DustType.String:
-                    return Faller.AddObject(Value);
+                    _sql = Faller.AddObject(Value);
+                    break;
                 default:
                     throw new NotImplementedException();
             }
+            _toSqled = true;
+            return _sql;
         }
 
         /// <summary>  是否是非DustType.Sql和DustType.Undefined类型
