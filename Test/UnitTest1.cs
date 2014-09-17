@@ -10,13 +10,7 @@ namespace Test
     [TestClass]
     public class UnitTest1
     {
-        class User
-        {
-            public int ID { get; set; }
-            public string Name { get; set; }
-            public DateTime Birthday { get; set; }
-            public bool Sex { get; set; }
-        }
+        
 
         void Where(string expected, Expression<Func<User, bool>> expr)
         {
@@ -167,6 +161,8 @@ namespace Test
         {
             ColumnsAndValues("ID, NAME, SEX, BIRTHDAY", "seq_table.nextval, :auto_p0, 1, SYSDATE", u => new User { ID = (SqlExpr)"seq_table.nextval", Name = "aaaa", Sex = true, Birthday = DateTime.Now });
         }
+
+
 
     }
 }

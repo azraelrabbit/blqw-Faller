@@ -12,11 +12,40 @@ namespace blqw
     public abstract class BaseSaw : ISaw
     {
         DbProviderFactory _factory;
+        string _aliasSeparator;
+
+        private static void NotNull<T>(T value, string argName)
+            where T : class
+        {
+            if (value == null)
+            {
+                throw new ArgumentNullException(argName);
+            }
+        }
+
         /// <summary> 初始化并提供 DbProviderFactory
         /// </summary>
         /// <param name="factory"></param>
         protected BaseSaw(DbProviderFactory factory)
         {
+            NotNull(factory, "factory");
+            _aliasSeparator = AliasSeparator;
+            if (_aliasSeparator == null)
+            {
+                _aliasSeparator = " ";
+            }
+            else
+            {
+                _aliasSeparator = _aliasSeparator.Trim();
+                if (_aliasSeparator.Length == 0)
+                {
+                    _aliasSeparator = " ";
+                }
+                else
+                {
+                    _aliasSeparator = " " + _aliasSeparator + " ";
+                }
+            }
             _factory = factory;
         }
 
@@ -27,15 +56,17 @@ namespace blqw
         /// <param name="right">右元素</param>
         public string BinaryOperation(string left, BinaryOperator bot, string right)
         {
+            NotNull(left, "left");
+            NotNull(right, "right");
             switch (bot)
             {
                 case BinaryOperator.Add:
                     return string.Concat(left, " + ", right);
-                case BinaryOperator.Subtract:      
+                case BinaryOperator.Subtract:
                     return string.Concat(left, " - ", right);
-                case BinaryOperator.Divide:        
+                case BinaryOperator.Divide:
                     return string.Concat(left, " / ", right);
-                case BinaryOperator.Multiply:      
+                case BinaryOperator.Multiply:
                     return string.Concat(left, " * ", right);
                 case BinaryOperator.And:
                     var a = left.Contains(" OR ") || left.Contains(" AND ");
@@ -125,6 +156,7 @@ namespace blqw
         /// <param name="alias">别名</param>
         public string GetTable(Type type, string alias)
         {
+            NotNull(type, "type");
             if (alias == null)
             {
                 return TableName(type);
@@ -137,6 +169,7 @@ namespace blqw
         /// <param name="type">实体属性或字段</param>
         public string GetColumn(string table, MemberInfo member)
         {
+            NotNull(member, "member");
             if (table == null)
             {
                 return ColumnName(member);
@@ -149,24 +182,12 @@ namespace blqw
         /// <param name="alias">列别名</param>
         public string GetColumn(string columnName, string alias)
         {
+            NotNull(columnName, "columnName");
             if (alias == null)
             {
                 return columnName;
             }
-            var a = AliasSeparator;
-            if (a[0] != ' ')
-            {
-                if (a[a.Length - 1] != ' ')
-                {
-                    return string.Join(" ", columnName, a, alias);
-                }
-                return string.Concat(columnName, " ", a, alias);
-            }
-            else if (a[a.Length - 1] != ' ')
-            {
-                return string.Concat(columnName, a, " ", alias);
-            }
-            return string.Concat(columnName, a, alias);
+            return string.Concat(columnName, _aliasSeparator, alias);
         }
         /// <summary> 将.NET中的方法解释为sql表达式
         /// </summary>
@@ -176,6 +197,7 @@ namespace blqw
         /// <returns></returns>
         public string ParseMethod(MethodInfo method, SawDust target, SawDust[] args)
         {
+            NotNull(method, "method");
             string sql = null;
             switch (Type.GetTypeCode(method.ReflectedType))
             {
@@ -206,7 +228,7 @@ namespace blqw
             }
             if (sql == null)
             {
-                sql = ParseUnknownMethod(method, target, args);
+                sql = ParseOtherMethod(method, target, args);
             }
             return sql;
         }
@@ -370,6 +392,9 @@ namespace blqw
         /// <param name="array">要查找的集合</param>
         public virtual string ContainsOperation(bool not, string element, string[] array)
         {
+            NotNull(array, "array");
+            NotNull(element, "element");
+
             if (array.Length > 1000)
             {
                 var @in = not ? " NOT IN " : " IN ";
@@ -407,6 +432,7 @@ namespace blqw
             {
                 return "NULL";
             }
+            NotNull(parameters, "parameters");
             var p = GetDbParameter(value);
             var name = "auto_p" + parameters.Count;
             p.ParameterName = name;
@@ -419,6 +445,7 @@ namespace blqw
         /// <param name="parameters">参数集合</param>
         public virtual string AddNumber(IConvertible number, ICollection<DbParameter> parameters)
         {
+            NotNull(number, "number");
             return number.ToString();
         }
         /// <summary> 向参数集合中追加一个布尔类型的参数,并返回参数名sql表达式
@@ -437,12 +464,12 @@ namespace blqw
             return TimeNow;
         }
 
-        /// <summary> 解释未知的方法
+        /// <summary> 解释其他方法,可重写
         /// </summary>
         /// <param name="method">需解释的方法</param>
         /// <param name="target">方法调用者</param>
         /// <param name="args">方法参数</param>
-        protected virtual string ParseUnknownMethod(MethodInfo method, SawDust target, SawDust[] args)
+        protected virtual string ParseOtherMethod(MethodInfo method, SawDust target, SawDust[] args)
         {
             throw new NotSupportedException("无法解释方法:" + method.ToString());
         }
@@ -486,6 +513,8 @@ namespace blqw
         protected abstract string LikeOperation(string val1, string val2, LikeOperator opt);
 
         #endregion
+
+        #region 不支持当前操作,如有需要请重新实现
 
         /// <summary> 解释按位运算 与,或,非
         /// </summary>
@@ -590,6 +619,8 @@ namespace blqw
         protected virtual string SrtingToNumber(string target)
         {
             throw new NotImplementedException("不支持当前操作,或请重新实现 MethodToNumber");
-        }
+        } 
+
+        #endregion
     }
 }

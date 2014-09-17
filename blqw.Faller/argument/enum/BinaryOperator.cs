@@ -60,57 +60,6 @@ namespace blqw
         LessThanOrEqual,
         /// <summary> LIKE操作 a LIKE %b%
         /// </summary>    
-        Contains,         
-        /// <summary> LIKE操作 a LIKE b%
-        /// </summary>    
-        StartWith,        
-        /// <summary> LIKE操作 a LIKE %b
-        /// </summary>    
-        EndWith,          
-        /// <summary> LIKE操作 a NOT LIKE %b%
-        /// </summary>    
-        NotContains,      
-        /// <summary> LIKE操作 a NOT LIKE b%
-        /// </summary>    
-        NotStartWith,     
-        /// <summary> LIKE操作 a NOT LIKE %b
-        /// </summary>
-        NotEndWith,
-        /// <summary> 位运算 如 a &amp; b
-        /// </summary>
-        BitAnd,
-        /// <summary> 位运算 如 a | b
-        /// </summary>
-        BitOr,
-        /// <summary> 位运算 如 a ^ b
-        /// </summary>
-        BitXor,
-    }
-
-    /// <summary> 按位操作符枚举
-    /// </summary>
-    [Serializable]
-    public enum BitOperator
-    {
-        /// <summary> 位运算 如 a &amp; b
-        /// </summary>
-        And,
-        /// <summary> 位运算 如 a | b
-        /// </summary>
-        Or,
-        /// <summary> 位运算 如 a ^ b
-        /// </summary>
-        Xor,
-    }
-
-
-    /// <summary> Like操作符枚举
-    /// </summary>
-    [Serializable]
-    public enum LikeOperator
-    {
-        /// <summary> LIKE操作 a LIKE %b%
-        /// </summary>    
         Contains,
         /// <summary> LIKE操作 a LIKE b%
         /// </summary>    
@@ -127,46 +76,14 @@ namespace blqw
         /// <summary> LIKE操作 a NOT LIKE %b
         /// </summary>
         NotEndWith,
-    }
-
-    /// <summary> 位移操作符枚举
-    /// </summary>
-    [Serializable]
-    public enum ShiftOperator
-    {         
-        /// <summary> 位移运算 a &lt;&lt; b
+        /// <summary> 位运算 如 a &amp; b
         /// </summary>
-        Left,
-        /// <summary> 位移运算 a &gt;&gt; b
+        BitAnd,
+        /// <summary> 位运算 如 a | b
         /// </summary>
-        Right,
-    }
-
-    /// <summary> 时间字段
-    /// </summary>
-    [Serializable]
-    public enum DateTimeField
-    {
-        /// <summary> 年
+        BitOr,
+        /// <summary> 位运算 如 a ^ b
         /// </summary>
-        Year,
-        /// <summary> 月
-        /// </summary>
-        Month,
-        /// <summary> 日
-        /// </summary>
-        Day,
-        /// <summary> 时
-        /// </summary>
-        Hour,
-        /// <summary> 分
-        /// </summary>
-        Minute,
-        /// <summary> 秒
-        /// </summary>
-        Second,
-        /// <summary> 星期
-        /// </summary>
-        Week,
+        BitXor,
     }
 }

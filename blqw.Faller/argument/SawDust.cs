@@ -28,7 +28,7 @@ namespace blqw
                 Type = type;
                 Value = value;
             }
-            Faller = faller;  
+            Faller = faller;
         }
 
         /// <summary> 解析组件
@@ -48,7 +48,7 @@ namespace blqw
         public string ToSql()
         {
             switch (Type)
-            {  
+            {
                 case DustType.Sql:
                     return (string)Value;
                 case DustType.Number:
@@ -99,7 +99,7 @@ namespace blqw
                 {
                     return true;
                 }
-                return Value == dust.Value && object.ReferenceEquals(Faller, dust.Faller);
+                return object.Equals(Value, dust.Value) && object.ReferenceEquals(Faller, dust.Faller);
             }
             return false;
         }

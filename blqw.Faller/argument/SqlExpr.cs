@@ -37,6 +37,5 @@ namespace blqw
         public static implicit operator ulong(SqlExpr value) { throw new NotSupportedException("仅在表达式树中有效"); }
         public static implicit operator Guid(SqlExpr value) { throw new NotSupportedException("仅在表达式树中有效"); }
         public static implicit operator Byte[](SqlExpr value) { throw new NotSupportedException("仅在表达式树中有效"); }
-
     }
 }
