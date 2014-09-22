@@ -49,7 +49,7 @@ Faller(砍树人)是一个轻量级的表达式树解析框架
 
     Where(u => u.Birthday.Day == 1);          //EXTRACT(DAY FROM a.BIRTHDAY) = 1  
     Where(u => u.Name.Trim() == "");          //ltrim(rtrim(a.NAME)) = :auto_p0  
-    Where(u => string.IsNullOrEmpty(u.Name)); //a.NAME IS NULL OR a.NAME == ''  
+    Where(u => string.IsNullOrEmpty(u.Name)); //a.NAME IS NULL OR a.NAME = ''  
 
 #### 可以在表达式树中灵活插入sql表达式  
 
