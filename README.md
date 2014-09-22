@@ -55,3 +55,27 @@ Faller(砍树人)是一个轻量级的表达式树解析框架
 
     Where(u => (SqlExpr)"rownum < 10");               //rownum < 10   
     Where(u => (SqlExpr)"rownum < 10" && u.ID > 10);  //rownum < 10 AND a.ID > 10  
+
+
+##Demo代码  
+```csharp
+public static class UserBLL
+{
+    public static List<User> GetUsers(Expression<Func<User, bool>> where)
+    {
+        var parse = Faller.Create(where);
+        var sql = parse.ToWhere(new MySaw());
+        using (var conn = new SqlConnection("Data Source=.;Initial Catalog=Test;Integrated Security=True"))
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = "select * from test where " + sql;
+            cmd.Parameters.AddRange(parse.Parameters.ToArray());
+            conn.Open();
+            using (var reader = cmd.ExecuteReader())
+            {
+                return Convert2.ToList<User>(reader);
+            }
+        }
+    }
+}
+```
