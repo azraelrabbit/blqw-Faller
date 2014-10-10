@@ -22,27 +22,7 @@ namespace blqw
         {
             return new HashSet<string>("ALL,ALTER,AND,ANY,ARRAY,AS,ASC,AT,AUTHID,AVG,BEGIN,BETWEEN,BINARY_INTEGER,BODY,BOOLEAN,BULK,BY,CHAR,CHAR_BASE,CHECK,CLOSE,CLUSTER,COLLECT,COMMENT,COMMIT,COMPRESS,CONNECT,CONSTANT,CREATE,CURRENT,CURRVAL,CURSOR,DATE,DAY,DECLARE,DECIMAL,DEFAULT,DELETE,DESC,DISTINCT,DO,DROP,ELSE,ELSIF,END,EXCEPTION,EXCLUSIVE,EXECUTE,EXISTS,EXIT,EXTENDS,FALSE,FETCH,FLOAT,FOR,FORALL,FROM,FUNCTION,GOTO,GROUP,HAVING,HEAP,HOUR,IF,IMMEDIATE,IN,INDEX,INDICATOR,INSERT,INTEGER,INTERFACE,INTERSECT,INTERVAL,INTO,IS,ISOLATION,JAVA,LEVEL,LIKE,LIMITED,LOCK,LONG,LOOP,MAX,MIN,MINUS,MINUTE,MLSLABEL,MOD,MODE,MONTH,NATURAL,NATURALN,NEW,NEXTVAL,NOCOPY,NOT,NOWAIT,NULL,NUMBER,NUMBER_BASE,OCIROWID,OF,ON,OPAQUE,OPEN,OPERATOR,OPTION,OR,ORDER,ORGANIZATION,OTHERS,OUT,PACKAGE,PARTITION,PCTFREE,PLS_INTEGER,POSITIVE,POSITIVEN,PRAGMA,PRIOR,PRIVATE,PROCEDURE,PUBLIC,RAISE,RANGE,RAW,REAL,RECORD,REF,RELEASE,RETURN,REVERSE,ROLLBACK,ROW,ROWID,ROWNUM,ROWTYPE,SAVEPOINT,SECOND,SELECT,SEPARATE,SET,SHARE,SMALLINT,SPACE,SQL,SQLCODE,SQLERRM,START,STDDEV,SUBTYPE,SUCCESSFUL,SUM,SYNONYM,SYSDATE,TABLE,THEN,TIME,TIMESTAMP,TO,TRIGGER,TRUE,TYPE,UID,UNION,UNIQUE,UPDATE,USE,USER,VALIDATE,VALUES,VARCHAR,VARCHAR2,VARIANCE,VIEW,WHEN,WHENEVER,WHERE,WHILE,WITH,WORK,WRITE,YEAR,ZONE".Split(','));
         }
-
-        protected override string TableName(Type type)
-        {
-            var name = type.Name.ToUpper();
-            if (KeyWords.Contains(name))
-            {
-                return string.Concat("\"", name, "\"");
-            }
-            return name;
-        }
-
-        protected override string ColumnName(MemberInfo member)
-        {
-            var name = member.Name.ToUpper();
-            if (KeyWords.Contains(name))
-            {
-                return string.Concat("\"", name, "\"");
-            }
-            return name;
-        }
-
+        
         protected override string ParameterPreFix
         {
             get { return ":"; }
@@ -199,6 +179,20 @@ namespace blqw
                 default:
                     throw new ArgumentOutOfRangeException("field");
             }
+        }
+
+        public override string WarpName(string name)
+        {
+            if (name == null)
+            {
+                throw new ArgumentNullException("name");
+            }
+            name = name.ToUpper();
+            if (name.Contains(".") || KeyWords.Contains(name))
+            {
+                return string.Concat("\"", name, "\"");
+            }
+            return name;
         }
     }
 }

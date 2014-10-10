@@ -489,19 +489,29 @@ namespace blqw
         /// <summary> 别名分隔符 默认 AS ,如 Table AS it
         /// </summary>
         protected virtual string AliasSeparator { get { return "AS"; } }
-        #endregion
-
-        #region abstract
 
         /// <summary> 返回实体类型所映射的表名
         /// </summary>
         /// <param name="type">实体类型</param>
-        protected abstract string TableName(Type type);
+        protected virtual string TableName(Type type)
+        {
+            return WarpName(SourceNameAttribute.GetName(type));
+        }
         /// <summary> 返回实体属性或字段所映射的列名
         /// </summary>
         /// <param name="member">实体属性或字段</param>
-        protected abstract string ColumnName(MemberInfo member);
+        protected virtual string ColumnName(MemberInfo member)
+        {
+            return WarpName(SourceNameAttribute.GetName(member));
+        }
 
+        #endregion
+
+        #region abstract
+        /// <summary> 包装名称,如果名称为关键字,则应该增加转义符
+        /// </summary>
+        /// <param name="name">等待包装的名称</param>
+        public abstract string WarpName(string name);
         /// <summary> 参数的前缀符号,如SqlServer中的@,Oracle中的:
         /// </summary>
         protected abstract string ParameterPreFix { get; }
@@ -626,5 +636,6 @@ namespace blqw
         } 
 
         #endregion
+
     }
 }

@@ -43,6 +43,10 @@ namespace blqw
         /// </summary>
         /// <param name="parameters">参数集合</param>
         string AddTimeNow(ICollection<DbParameter> parameters);
+        /// <summary> 包装名称,如果名称为关键字,则应该增加转义符
+        /// </summary>
+        /// <param name="name">等待包装的名称</param>
+        string WarpName(string name);
         /// <summary> 获取实体类型所映射的表名
         /// </summary>
         /// <param name="type">实体类型</param>
