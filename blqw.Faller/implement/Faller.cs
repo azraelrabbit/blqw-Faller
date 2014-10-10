@@ -215,40 +215,17 @@ namespace blqw
             _saw = saw;
             _state = new State();
             var expr = _lambda.Body as MemberInitExpression;
-            if (expr == null)
+            if (expr != null)
             {
-                Throw("仅支持 MemberInitExpression \n如:new Model{ Field1 = Value1, Field2 = Value2 } 表达式");
+                return ToColumnsAndValues(expr);
             }
-            var binds = expr.Bindings;
-            var length = binds.Count;
-            if (length == 0)
+            var expr2 = _lambda.Body as NewExpression;
+            if (expr2 != null)
             {
-                return new KeyValuePair<string, string>();
+                return ToColumnsAndValues(expr2);
             }
-            if (length == 1)
-            {
-                MemberAssignment m = binds[0] as MemberAssignment;
-                if (m == null)
-                {
-                    Throw("无法解释表达式 => " + binds[0].ToString());
-                }
-                return new KeyValuePair<string, string>(_saw.GetColumn(null, m.Member), GetSql(m.Expression));
-            }
-
-            var columns = new string[length];
-            var values = new string[length];
-            for (int i = 0; i < length; i++)
-            {
-                MemberAssignment m = binds[i] as MemberAssignment;
-                if (m == null)
-                {
-                    Throw("无法解释表达式 => " + binds[i].ToString());
-                }
-                columns[i] = _saw.GetColumn(null, m.Member);
-                values[i] = GetSql(m.Expression);
-            }
-
-            return new KeyValuePair<string, string>(string.Join(", ", columns), string.Join(", ", values));
+            Throw("仅支持 MemberInitExpression/NewExpression \n如:new Model{ Field1 = Value1, Field2 = Value2 } 表达式");
+            throw new Exception();
         }
 
         public ICollection<DbParameter> Parameters { get; private set; }
@@ -981,11 +958,7 @@ namespace blqw
         }
 
         #endregion
-
-        #region MyRegion
-
-        #endregion
-
+        
         #region ParseMethods
 
 
@@ -1462,6 +1435,62 @@ namespace blqw
 
         #endregion
 
+        KeyValuePair<string, string> ToColumnsAndValues(MemberInitExpression expr)
+        {
+            var binds = expr.Bindings;
+            var length = binds.Count;
+            if (length == 0)
+            {
+                return new KeyValuePair<string, string>();
+            }
+            if (length == 1)
+            {
+                MemberAssignment m = binds[0] as MemberAssignment;
+                if (m == null)
+                {
+                    Throw("无法解释表达式 => " + binds[0].ToString());
+                }
+                return new KeyValuePair<string, string>(_saw.GetColumn(null, m.Member), GetSql(m.Expression));
+            }
 
+            var columns = new string[length];
+            var values = new string[length];
+            for (int i = 0; i < length; i++)
+            {
+                MemberAssignment m = binds[i] as MemberAssignment;
+                if (m == null)
+                {
+                    Throw("无法解释表达式 => " + binds[i].ToString());
+                }
+                columns[i] = _saw.GetColumn(null, m.Member);
+                values[i] = GetSql(m.Expression);
+            }
+
+            return new KeyValuePair<string, string>(string.Join(", ", columns), string.Join(", ", values));
+        }
+
+        KeyValuePair<string, string> ToColumnsAndValues(NewExpression expr)
+        {
+            var members = expr.Members;
+            var length = members.Count;
+            if (length == 0)
+            {
+                return new KeyValuePair<string, string>();
+            }
+            if (length == 1)
+            {
+                return new KeyValuePair<string, string>(_saw.GetColumn(null, members[0]), GetSql(expr.Arguments[0]));
+            }
+            var args = expr.Arguments;
+            var columns = new string[length];
+            var values = new string[length];
+            for (int i = 0; i < length; i++)
+            {
+                columns[i] = _saw.GetColumn(null, members[i]);
+                values[i] = GetSql(args[i]);
+            }
+
+            return new KeyValuePair<string, string>(string.Join(", ", columns), string.Join(", ", values));
+        }
     }
 }
