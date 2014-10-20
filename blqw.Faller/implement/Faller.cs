@@ -13,8 +13,7 @@ namespace blqw
     /// </summary>
     public sealed class Faller : IFaller
     {
-        private static void NotNull<T>(T value, string argName)
-            where T : class
+        private static void NotNull(object value, string argName)
         {
             if (value == null)
             {

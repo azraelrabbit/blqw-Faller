@@ -58,6 +58,7 @@
     <Compile Include="implement\OracleSaw.cs" />
     <Compile Include="interface\IFaller.cs" />
     <Compile Include="interface\ISaw.cs" />
+    <Compile Include="table\SourceNameAttribute.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="resource\Oracle.ManagedDataAccess.dll" />
