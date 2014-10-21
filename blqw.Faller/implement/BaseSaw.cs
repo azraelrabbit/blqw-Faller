@@ -14,8 +14,7 @@ namespace blqw
         DbProviderFactory _factory;
         string _aliasSeparator;
 
-        private static void NotNull<T>(T value, string argName)
-            where T : class
+        private static void AreNull(object value, string argName)
         {
             if (value == null)
             {
@@ -28,7 +27,7 @@ namespace blqw
         /// <param name="factory"></param>
         protected BaseSaw(DbProviderFactory factory)
         {
-            NotNull(factory, "factory");
+            AreNull(factory, "factory");
             _aliasSeparator = AliasSeparator;
             if (_aliasSeparator == null)
             {
@@ -49,7 +48,7 @@ namespace blqw
             _factory = factory;
         }
 
-        #region 
+        #region
 
         /// <summary> 解释二元操作
         /// </summary>
@@ -58,8 +57,8 @@ namespace blqw
         /// <param name="right">右元素</param>
         public string BinaryOperation(string left, BinaryOperator bot, string right)
         {
-            NotNull(left, "left");
-            NotNull(right, "right");
+            AreNull(left, "left");
+            AreNull(right, "right");
             switch (bot)
             {
                 case BinaryOperator.Add:
@@ -158,33 +157,38 @@ namespace blqw
         /// <param name="alias">别名</param>
         public string GetTable(Type type, string alias)
         {
-            NotNull(type, "type");
+            AreNull(type, "type");
             if (alias == null)
             {
                 return TableName(type);
             }
             return GetColumn(TableName(type), alias);
         }
-        /// <summary> 获取实体属性或字段所映射的列名
+
+
+        /// <summary> 获取实体字段或属性所映射的列名
         /// </summary>
         /// <param name="table">表名或表别名</param>
-        /// <param name="type">实体属性或字段</param>
+        /// <param name="member">实体字段或属性</param>
         public string GetColumn(string table, MemberInfo member)
         {
-            NotNull(member, "member");
+            AreNull(member, "member");
             if (table == null)
             {
                 return ColumnName(member);
             }
             return string.Concat(table, ".", ColumnName(member));
         }
+
+
+
         /// <summary> 获取列名和列别名组合后的sql表达式
         /// </summary>
         /// <param name="columnName">列名</param>
         /// <param name="alias">列别名</param>
         public string GetColumn(string columnName, string alias)
         {
-            NotNull(columnName, "columnName");
+            AreNull(columnName, "columnName");
             if (alias == null)
             {
                 return columnName;
@@ -199,7 +203,7 @@ namespace blqw
         /// <returns></returns>
         public string ParseMethod(MethodInfo method, SawDust target, SawDust[] args)
         {
-            NotNull(method, "method");
+            AreNull(method, "method");
             string sql = null;
             switch (Type.GetTypeCode(method.ReflectedType))
             {
@@ -228,13 +232,51 @@ namespace blqw
                 default:
                     break;
             }
-            if (sql == null)
-            {
-                sql = ParseOtherMethod(method, target, args);
-            }
-            return sql;
+
+            return sql ?? ParseMember(method, target, args);
         }
-        
+
+        public string ParseProperty(PropertyInfo property, SawDust target)
+        {
+            AreNull(property, "property");
+            if (property.ReflectedType == typeof(DateTime))
+            {
+                switch (property.Name)
+                {
+                    case "Year":
+                        return DateTimeToField(target.ToSql(), DateTimeField.Year);
+                    case "Month":
+                        return DateTimeToField(target.ToSql(), DateTimeField.Month);
+                    case "Day":
+                        return DateTimeToField(target.ToSql(), DateTimeField.Day);
+                    case "Hour":
+                        return DateTimeToField(target.ToSql(), DateTimeField.Hour);
+                    case "Minute":
+                        return DateTimeToField(target.ToSql(), DateTimeField.Minute);
+                    case "Second":
+                        return DateTimeToField(target.ToSql(), DateTimeField.Second);
+                    case "DayOfWeek":
+                        return DateTimeToField(target.ToSql(), DateTimeField.Week);
+                    default:
+                        break;
+                }
+                return null;
+            }
+            else if (property.ReflectedType == typeof(string))
+            {
+                if (property.Name == "Length")
+                {
+                    return StringLength(target.ToSql());
+                }
+            }
+            return ParseMember(property, target, new SawDust[0]);
+        }
+
+        public string ParseField(FieldInfo field, SawDust target)
+        {
+            return ParseMember(field, target, new SawDust[0]);
+        }
+
         #endregion
 
         #region private ParseMethods
@@ -293,20 +335,6 @@ namespace blqw
                     return ObjectToString(DustType.DateTime, target.ToSql(), "'HH:mm'");
                 case "ToShortDateString":
                     return ObjectToString(DustType.DateTime, target.ToSql(), "'yyyy-MM-dd'");
-                case "get_Year":
-                    return DateTimeToField(target.ToSql(), DateTimeField.Year);
-                case "get_Month":
-                    return DateTimeToField(target.ToSql(), DateTimeField.Month);
-                case "get_Day":
-                    return DateTimeToField(target.ToSql(), DateTimeField.Day);
-                case "get_Hour":
-                    return DateTimeToField(target.ToSql(), DateTimeField.Hour);
-                case "get_Minute":
-                    return DateTimeToField(target.ToSql(), DateTimeField.Minute);
-                case "get_Second":
-                    return DateTimeToField(target.ToSql(), DateTimeField.Second);
-                case "get_DayOfWeek":
-                    return DateTimeToField(target.ToSql(), DateTimeField.Week);
                 default:
                     break;
             }
@@ -345,8 +373,6 @@ namespace blqw
                     return StringIsNullOrWhiteSpace(args[0].ToSql());
                 case "IsNullOrEmpty":
                     return StringIsNullOrEmpty(args[0].ToSql());
-                case "get_Length":
-                    return StringLength(target.ToSql());
                 case "ToString":
                     return target.ToSql();
                 default:
@@ -396,8 +422,8 @@ namespace blqw
         /// <param name="array">要查找的集合</param>
         public virtual string ContainsOperation(bool not, string element, string[] array)
         {
-            NotNull(array, "array");
-            NotNull(element, "element");
+            AreNull(array, "array");
+            AreNull(element, "element");
 
             if (array.Length > 1000)
             {
@@ -436,7 +462,7 @@ namespace blqw
             {
                 return "NULL";
             }
-            NotNull(parameters, "parameters");
+            AreNull(parameters, "parameters");
             var p = GetDbParameter(value);
             var name = "auto_p" + parameters.Count;
             p.ParameterName = name;
@@ -449,7 +475,7 @@ namespace blqw
         /// <param name="parameters">参数集合</param>
         public virtual string AddNumber(IConvertible number, ICollection<DbParameter> parameters)
         {
-            NotNull(number, "number");
+            AreNull(number, "number");
             return number.ToString();
         }
         /// <summary> 向参数集合中追加一个布尔类型的参数,并返回参数名sql表达式
@@ -473,9 +499,9 @@ namespace blqw
         /// <param name="method">需解释的方法</param>
         /// <param name="target">方法调用者</param>
         /// <param name="args">方法参数</param>
-        protected virtual string ParseOtherMethod(MethodInfo method, SawDust target, SawDust[] args)
+        protected virtual string ParseMember(MemberInfo member, SawDust target, SawDust[] args)
         {
-            throw new NotSupportedException("无法解释方法:" + method.ToString());
+            throw new NotSupportedException("无法解释方法:" + member.ToString());
         }
         /// <summary> 获取新的数据库参数
         /// </summary>
@@ -633,9 +659,10 @@ namespace blqw
         protected virtual string SrtingToNumber(string target)
         {
             throw new NotImplementedException("不支持当前操作,或请重新实现 MethodToNumber");
-        } 
+        }
 
         #endregion
+
 
     }
 }

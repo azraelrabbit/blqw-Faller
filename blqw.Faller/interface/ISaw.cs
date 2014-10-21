@@ -52,10 +52,10 @@ namespace blqw
         /// <param name="type">实体类型</param>
         /// <param name="alias">别名</param>
         string GetTable(Type type, string alias);
-        /// <summary> 获取实体属性或字段所映射的列名
+        /// <summary> 获取实体字段或属性所映射的列名
         /// </summary>
         /// <param name="table">表名或表别名</param>
-        /// <param name="type">实体属性或字段</param>
+        /// <param name="member">实体字段或属性</param>
         string GetColumn(string table, MemberInfo member);
         /// <summary> 获取列名和列别名组合后的sql表达式
         /// </summary>
@@ -69,5 +69,15 @@ namespace blqw
         /// <param name="args">方法参数</param>
         /// <returns></returns>
         string ParseMethod(MethodInfo method, SawDust target, SawDust[] args);
+        /// <summary> 将.NET中的属性解释为sql表达式
+        /// </summary>
+        /// <param name="property">实体属性</param>
+        /// <param name="target">方法调用者</param>
+        string ParseProperty(PropertyInfo property, SawDust target);
+        /// <summary> 将.NET中的字段解释为sql表达式
+        /// </summary>
+        /// <param name="field">实体字段</param>
+        /// <param name="target">方法调用者</param>
+        string ParseField(FieldInfo field, SawDust target);
     }
 }

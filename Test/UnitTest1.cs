@@ -64,6 +64,13 @@ namespace Test
             Where("ID <> 1", u => (u.ID == 1) == false);
             Where("ID = 1", u => (u.ID == 1) != false);
             Where("SEX = 1", u => u.Sex);
+            Where("SEX = 0", u => !u.Sex);
+            Where("SEX = 0", u => u.Sex == false);
+            Where("SEX = 1", u => !u.Sex == false);
+            Where("SEX = 0", u => (!u.Sex == false) == false);
+            Where("SEX = 1", u => (!u.Sex == false) == true);
+            Where("SEX = 0", u => !(!u.Sex == false) == true);
+            Where("SEX = 1", u => !(!u.Sex == false) == false);
 
             //一般
             Where("ID = 1", u => u.ID == 1);

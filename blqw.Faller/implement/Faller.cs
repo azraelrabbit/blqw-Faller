@@ -27,7 +27,7 @@ namespace blqw
         /// <param name="expr">lambda表达式</param>
         public static IFaller Create(LambdaExpression expr)
         {
-            NotNull(expr,"expr");
+            NotNull(expr, "expr");
             NotNull(expr.Body, "expr.Body");
             return new Faller() {
                 _lambda = expr,
@@ -553,6 +553,8 @@ namespace blqw
 
         #region Parse
 
+        private Dictionary<MemberInfo, LiteracyGetter> Getters = new Dictionary<MemberInfo, LiteracyGetter>();
+
         private void Parse(Expression expr)
         {
             _state.IncreaseLayer();
@@ -734,15 +736,11 @@ namespace blqw
             var para = expr.Expression as ParameterExpression;
             if (para != null)
             {
-                //命名参数,返回 表别名.列名
-                var index = _lambda.Parameters.IndexOf(para);
-                _state.Sql = _saw.GetColumn(GetAlias(index), expr.Member);
-                if (expr.Type == typeof(bool) && _entry == WHERE)
-                {
-                    _state.Sql = _saw.BinaryOperation(_state.Sql, BinaryOperator.Equal, AddBoolean(true));
-                }
+                Parse(para, expr.Member);
+                return;
             }
-            else if (object.ReferenceEquals(expr.Member, _TimeNow))
+
+            if (object.ReferenceEquals(expr.Member, _TimeNow)) //判断 DateTime.Now
             {
                 //如果是DateTime.Now 返回数据库的当前时间表达式
                 var now = _saw.AddTimeNow(Parameters);
@@ -755,44 +753,54 @@ namespace blqw
                 {
                     _state.Sql = now;
                 }
+                return;
             }
-            else
+
+            object target = null; //获取 非静态属性/字段的所属对象
+            if (expr.Expression != null)
             {
-                object target = null;
-                // expr.Expression 不等于 null 说明是实例成员,否则是静态成员
-                if (expr.Expression != null)
+                Parse(expr.Expression); //解释对象 实例成员,必然可以得到一个对象
+                if (_state.DustType == DustType.Sql) //如果是Sql, 应该被解释为sql而不是对象
                 {
-                    Parse(expr.Expression);
-                    if (_state.DustType == DustType.Sql) //实例成员,必然可以得到一个对象
+                    if (expr.Member.MemberType == MemberTypes.Property)
                     {
-                        if (expr.Member is PropertyInfo)
-                        {
-                            var mem = ((PropertyInfo)expr.Member);
-                            _state.Sql = _saw.ParseMethod(mem.GetGetMethod(true) ?? mem.GetSetMethod(true), GetSawDust(), new SawDust[0]);
-                            return;
-                        }
-                    }
-                    else if (_state.IsNull())
-                    {
-                        Throw(expr);
+                        _state.Sql = _saw.ParseProperty((PropertyInfo)expr.Member, GetSawDust());
                     }
                     else
                     {
-                        target = _state.Object;
+                        _state.Sql = _saw.ParseField((FieldInfo)expr.Member, GetSawDust());
                     }
+                    return;
                 }
-                //判断 Member 是属性还是字段,使用反射,得到值
-                var p = expr.Member as PropertyInfo;
-                if (p != null)
+                target = _state.Object;
+                if (target == null) //这里不可能是null的...
                 {
-                    _state.Object = p.GetValue(target, null);
-                }
-                else //不是属性,只能是字段
-                {
-                    _state.Object = ((FieldInfo)expr.Member).GetValue(target);
+                    Throw(expr);
                 }
             }
+
+            LiteracyGetter getter;
+            if (Getters.TryGetValue(expr.Member, out getter) == false)
+            {
+                lock (Getters)
+                {
+                    if (Getters.TryGetValue(expr.Member, out getter) == false)
+                    {
+                        if (expr.Member.MemberType == MemberTypes.Property)
+                        {
+                            getter = Literacy.CreateGetter((PropertyInfo)expr.Member);
+                        }
+                        else
+                        {
+                            getter = Literacy.CreateGetter((FieldInfo)expr.Member);
+                        }
+                    }
+                }
+            }
+
+            _state.Object = getter(target);
         }
+
         private void Parse(MemberInitExpression expr) { Throw("不支持MemberInitExpression"); }
         private void Parse(NewArrayExpression expr)
         {
@@ -848,7 +856,34 @@ namespace blqw
             }
             _state.Array = arr;
         }
-        private void Parse(ParameterExpression expr) { Throw("不支持ParameterExpression"); }
+        private void Parse(ParameterExpression expr, MemberInfo member)
+        {
+            //命名参数,返回 表别名.列名
+            var index = _lambda.Parameters.IndexOf(expr);
+            _state.Sql = _saw.GetColumn(GetAlias(index), member);
+            if (member.MemberType == MemberTypes.Property)
+            {
+                _state.Sql = _saw.GetColumn(GetAlias(index), (PropertyInfo)member);
+            }
+            else
+            {
+                _state.Sql = _saw.GetColumn(GetAlias(index), (FieldInfo)member);
+            }
+            if (_entry == WHERE)
+            {
+                if (member.MemberType == MemberTypes.Property)
+                {
+                    if (((PropertyInfo)member).PropertyType == typeof(bool))
+                    {
+                        _state.Sql = _saw.BinaryOperation(_state.Sql, BinaryOperator.Equal, AddBoolean(!_state.UnaryNot));
+                    }
+                }
+                else if (((FieldInfo)member).FieldType == typeof(bool))
+                {
+                    _state.Sql = _saw.BinaryOperation(_state.Sql, BinaryOperator.Equal, AddBoolean(!_state.UnaryNot));
+                }
+            }
+        }
         private void Parse(TypeBinaryExpression expr) { Throw("不支持TypeBinaryExpression"); }
         private void Parse(UnaryExpression expr)
         {
@@ -912,19 +947,19 @@ namespace blqw
 
             var method = expr.Method;
             //表达式树有时会丢失方法的调用方类型,这时需要重新反射方法
-            if (object.ReferenceEquals(method.ReflectedType, typeof(object)) && expr.Object != null)
+            if (method.ReflectedType == typeof(object) && expr.Object != null)
             {
                 method = expr.Object.Type.GetMethod(expr.Method.Name, expr.Method.GetParameters().Select(it => it.ParameterType).ToArray());
             }
 
-            if (object.ReferenceEquals(method.ReflectedType, typeof(string)))
+            if (method.ReflectedType == typeof(string))
             {
                 if (ParseStringMethod(method, target, args))
                 {
                     return;
                 }
             }
-            else if (object.ReferenceEquals(method.ReflectedType, typeof(System.Linq.Enumerable)))
+            else if (method.ReflectedType == typeof(System.Linq.Enumerable))
             {
                 if (method.Name == "Contains" && args.Length == 2)
                 {
@@ -957,7 +992,7 @@ namespace blqw
         }
 
         #endregion
-        
+
         #region ParseMethods
 
 
