@@ -6,16 +6,13 @@ using System.Text;
 
 namespace blqw
 {
-
+    /// <summary> 
+    /// </summary>
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Property, Inherited = false, AllowMultiple = false)]
     public class SourceNameAttribute : Attribute
     {
-        public SourceNameAttribute(string name)
-        {
-            Name = name;
-        }
 
-        public string Name { get; private set; }
+        public string Name { get; set; }
 
         public static string GetName(MemberInfo member)
         {
@@ -23,8 +20,8 @@ namespace blqw
             {
                 throw new ArgumentNullException("member");
             }
-            var attr = Attribute.GetCustomAttribute(member, typeof(Attribute));
-            return (attr == null) ? member.Name : ((SourceNameAttribute)attr).Name;
+            var attr = (SourceNameAttribute)Attribute.GetCustomAttribute(member, typeof(SourceNameAttribute));
+            return (attr == null) ? member.Name : attr.Name;
         }
     }
 }

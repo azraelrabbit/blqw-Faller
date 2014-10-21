@@ -9,6 +9,11 @@ Faller(砍树人)是一个轻量级的表达式树解析框架
 [OracleSaw](https://code.csdn.net/jy02305022/blqw-faller/tree/master/blqw.Faller/implement/OracleSaw.cs)  
   
 ## 更新说明  
+#### 2014.10.21
+* 解决部分小bug
+* 优化代码
+* 引用[Literacy](https://code.csdn.net/jy02305022/blqw.Literacy)优化性能
+
 #### 2014.10.10
 * 优化ToColumnsAndValues,也支持匿名类型
 

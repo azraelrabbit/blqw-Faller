@@ -1469,14 +1469,16 @@ namespace blqw
 
         #endregion
 
-        KeyValuePair<string, string> ToColumnsAndValues(MemberInitExpression expr)
+        private KeyValuePair<string, string> ToColumnsAndValues(MemberInitExpression expr)
         {
             var binds = expr.Bindings;
             var length = binds.Count;
+            
             if (length == 0)
             {
                 return new KeyValuePair<string, string>();
             }
+
             if (length == 1)
             {
                 MemberAssignment m = binds[0] as MemberAssignment;
@@ -1503,7 +1505,7 @@ namespace blqw
             return new KeyValuePair<string, string>(string.Join(", ", columns), string.Join(", ", values));
         }
 
-        KeyValuePair<string, string> ToColumnsAndValues(NewExpression expr)
+        private KeyValuePair<string, string> ToColumnsAndValues(NewExpression expr)
         {
             var members = expr.Members;
             var length = members.Count;
