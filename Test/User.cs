@@ -12,6 +12,6 @@ namespace Test
         public DateTime Birthday { get; set; }
         public bool Sex { get; set; }
 
-        public int? Value { get; set; }
+        public decimal? Value { get; set; }
     }
 }

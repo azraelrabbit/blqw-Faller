@@ -60,6 +60,7 @@ namespace Test
         [TestMethod]
         public void Nullable_Value()
         {
+            Where("VALUE = 1", u => u.Value == 1);
             Where("TO_CHAR(VALUE) = :auto_p0", u => u.Value.Value.ToString() == "a");
             Where("VALUE = 1", u => u.Value.Value == 1);
             Where("VALUE IS NULL", u => u.Value.HasValue);

@@ -781,7 +781,10 @@ namespace blqw
                         {
                             if (IsNullable(prop.ReflectedType))
                             {
-                                _state.Sql = _saw.BinaryOperation(_state.Sql, ConvertBinaryOperator(ExpressionType.Equal), AddObject(null));
+                                _state.Sql = _saw.BinaryOperation(
+                                    _state.Sql,
+                                    _state.UnaryNot ? BinaryOperator.NotEqual : BinaryOperator.Equal,
+                                    AddObject(null));
                                 return;
                             }
                         }
@@ -944,7 +947,9 @@ namespace blqw
                             return;
                         }
                         var obj = _state.Object;
-                        if (!object.ReferenceEquals(obj.GetType(), expr.Type))
+                        var type = obj.GetType();
+                        if (type != expr.Type &&
+                            type != Nullable.GetUnderlyingType(expr.Type))
                         {
                             _state.Object = Convert.ChangeType(obj, expr.Type);
                         }
