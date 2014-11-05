@@ -11,5 +11,7 @@ namespace Test
         public string Name { get; set; }
         public DateTime Birthday { get; set; }
         public bool Sex { get; set; }
+
+        public int? Value { get; set; }
     }
 }

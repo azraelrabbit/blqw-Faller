@@ -21,6 +21,11 @@ namespace blqw
             }
         }
 
+        private bool IsNullable(Type type)
+        {
+            return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>);
+        }
+
         private Faller() { }
         /// <summary> 创建一个解析器
         /// </summary>
@@ -764,7 +769,23 @@ namespace blqw
                 {
                     if (expr.Member.MemberType == MemberTypes.Property)
                     {
-                        _state.Sql = _saw.ParseProperty((PropertyInfo)expr.Member, GetSawDust());
+                        var prop = (PropertyInfo)expr.Member;
+                        if (prop.Name == "Value")
+                        {
+                            if (IsNullable(prop.ReflectedType))
+                            {
+                                return;
+                            }
+                        }
+                        else if (prop.Name == "HasValue")
+                        {
+                            if (IsNullable(prop.ReflectedType))
+                            {
+                                _state.Sql = _saw.BinaryOperation(_state.Sql, ConvertBinaryOperator(ExpressionType.Equal), AddObject(null));
+                                return;
+                            }
+                        }
+                        _state.Sql = _saw.ParseProperty(prop, GetSawDust());
                     }
                     else
                     {
@@ -800,7 +821,6 @@ namespace blqw
 
             _state.Object = getter(target);
         }
-
         private void Parse(MemberInitExpression expr) { Throw("不支持MemberInitExpression"); }
         private void Parse(NewArrayExpression expr)
         {
@@ -1473,7 +1493,7 @@ namespace blqw
         {
             var binds = expr.Bindings;
             var length = binds.Count;
-            
+
             if (length == 0)
             {
                 return new KeyValuePair<string, string>();

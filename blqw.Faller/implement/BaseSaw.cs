@@ -205,7 +205,8 @@ namespace blqw
         {
             AreNull(method, "method");
             string sql = null;
-            switch (Type.GetTypeCode(method.ReflectedType))
+
+            switch (Type.GetTypeCode(Nullable.GetUnderlyingType(method.ReflectedType) ?? method.ReflectedType))
             {
                 case TypeCode.Char:
                     sql = ParseCharMethod(method, target, args);

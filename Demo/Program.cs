@@ -11,8 +11,12 @@ namespace Demo
     {
         static void Main(string[] args)
         {
-            var users = UserBLL.GetUsers(u => u.ID == 1);
-            Console.WriteLine(users[0].Name);
+
+            Where<MyClass>(a => a.id == null);
+            Where<MyClass>(a => a.id != null);
+            Where<MyClass>(a => (a.id == null) == false);
+            Where<MyClass>(a => !(a.id == null));
+
             //DemoColumnsAndValues();
             //DemoValues();
             //DemoSqlExpr();
@@ -22,7 +26,10 @@ namespace Demo
             //DemoColumns();
         }
 
-
+        class MyClass
+        {
+            public int? id { get; set; }
+        }
 
 
 

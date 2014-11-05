@@ -50,5 +50,22 @@ namespace Test
         {
             Where("NAME IN (:auto_p0, :auto_p1, :auto_p2)", u => "aaa,bbb,ccc".Split(',').Contains(u.Name));
         }
+
+
+        [TestMethod]
+        public void Nullable_ToString()
+        {
+            Where("TO_CHAR(VALUE) = :auto_p0", u => u.Value.ToString() == "a");
+        }
+        [TestMethod]
+        public void Nullable_Value()
+        {
+            Where("TO_CHAR(VALUE) = :auto_p0", u => u.Value.Value.ToString() == "a");
+            Where("VALUE = 1", u => u.Value.Value == 1);
+            Where("VALUE IS NULL", u => u.Value.HasValue);
+            Where("VALUE IS NOT NULL", u => !u.Value.HasValue);
+            Where("VALUE IS NOT NULL", u => u.Value.HasValue == false);
+            Where("VALUE IS NOT NULL", u => (!u.Value.HasValue == false) == false);
+        }
     }
 }

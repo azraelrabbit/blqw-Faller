@@ -9,6 +9,12 @@ Faller(砍树人)是一个轻量级的表达式树解析框架
 [OracleSaw](https://code.csdn.net/jy02305022/blqw-faller/tree/master/blqw.Faller/implement/OracleSaw.cs)  
   
 ## 更新说明  
+#### 2014.11.05
+* 感谢网友 @不跟随 提供bug反馈
+* 解决实体类中可空值类型.ToString() 报错的问题
+* 解决实体类中可空值类型.Value 属性报错的问题
+* 新增支持实体类可空值类型.HasValue 属性的解析,现在可以得到 xxx IS NULL 的sql语句
+
 #### 2014.10.21
 * 解决部分小bug
 * 优化代码
