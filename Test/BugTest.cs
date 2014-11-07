@@ -68,5 +68,11 @@ namespace Test
             Where("VALUE IS NOT NULL", u => u.Value.HasValue == false);
             Where("VALUE IS NOT NULL", u => (!u.Value.HasValue == false) == false);
         }
+        [TestMethod]
+        public void Double_Not()
+        {
+            Where("SEX = 0 AND SEX = 0", u => !u.Sex == true && u.Sex != true);
+        }
+
     }
 }

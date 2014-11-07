@@ -278,6 +278,7 @@ namespace blqw
         /// </summary>
         private class State
         {
+            bool _unaryNot;
             /// <summary> 验证当前状态
             /// </summary>
             /// <param name="type"></param>
@@ -293,9 +294,14 @@ namespace blqw
             /// </summary>
             public void Not()
             {
-                UnaryNot = !UnaryNot;
+                _unaryNot = !_unaryNot;
             }
-
+            /// <summary> 初始化 UnaryNot 状态
+            /// </summary>
+            public void ResetUnaryNot()
+            {
+                _unaryNot = false;
+            }
             /// <summary> 保存当前递归层数,最大100
             /// </summary>
             private int _layer;
@@ -322,7 +328,20 @@ namespace blqw
             public DustType DustType { get; private set; }
             /// <summary> 在解析一元表达式时用于控制当前状态
             /// </summary>
-            public bool UnaryNot { get; private set; }
+            public bool UnaryNot
+            {
+                get
+                {
+                    try
+                    {
+                        return _unaryNot;
+                    }
+                    finally
+                    {
+                        _unaryNot = false;
+                    }
+                }
+            }
 
             #region Value
 

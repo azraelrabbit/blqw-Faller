@@ -11,11 +11,7 @@ namespace Demo
     {
         static void Main(string[] args)
         {
-
-            Where<MyClass>(a => a.id == null);
-            Where<MyClass>(a => a.id != null);
-            Where<MyClass>(a => (a.id == null) == false);
-            Where<MyClass>(a => !(a.id == null));
+            Where<MyClass>(a => !a.sex == true && a.sex != true);
 
             //DemoColumnsAndValues();
             //DemoValues();
@@ -28,7 +24,7 @@ namespace Demo
 
         class MyClass
         {
-            public int? id { get; set; }
+            public bool sex { get; set; }
         }
 
 
