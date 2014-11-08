@@ -74,5 +74,11 @@ namespace Test
             Where("SEX = 0 AND SEX = 0", u => !u.Sex == true && u.Sex != true);
         }
 
+        [TestMethod]
+        public void Nullable_Boolean()
+        {
+            Where("VALUE = 1", u => u.Value == 1);
+        }
+
     }
 }

@@ -477,7 +477,7 @@ namespace blqw
         public virtual string AddNumber(IConvertible number, ICollection<DbParameter> parameters)
         {
             AreNull(number, "number");
-            return number.ToString();
+            return AddObject(number, parameters);
         }
         /// <summary> 向参数集合中追加一个布尔类型的参数,并返回参数名sql表达式
         /// </summary>
@@ -485,7 +485,7 @@ namespace blqw
         /// <param name="parameters">参数集合</param>
         public virtual string AddBoolean(bool value, ICollection<DbParameter> parameters)
         {
-            return value ? "true" : "false";
+            return AddObject(value, parameters);
         }
         /// <summary> 向参数集合中追加当前时间,并返回参数名sql表达式
         /// </summary>
