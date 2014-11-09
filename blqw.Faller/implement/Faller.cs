@@ -913,14 +913,9 @@ namespace blqw
             }
             if (_entry == WHERE)
             {
-                if (member.MemberType == MemberTypes.Property)
-                {
-                    if (((PropertyInfo)member).PropertyType == typeof(bool))
-                    {
-                        _state.Sql = _saw.BinaryOperation(_state.Sql, BinaryOperator.Equal, AddBoolean(!_state.UnaryNot));
-                    }
-                }
-                else if (((FieldInfo)member).FieldType == typeof(bool))
+                Type type = (member.MemberType == MemberTypes.Property) ? ((PropertyInfo)member).PropertyType : ((FieldInfo)member).FieldType;
+
+                if (type == typeof(bool) || type == typeof(bool?))
                 {
                     _state.Sql = _saw.BinaryOperation(_state.Sql, BinaryOperator.Equal, AddBoolean(!_state.UnaryNot));
                 }

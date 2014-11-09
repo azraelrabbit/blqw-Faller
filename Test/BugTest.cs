@@ -77,7 +77,9 @@ namespace Test
         [TestMethod]
         public void Nullable_Boolean()
         {
-            Where("VALUE = 1", u => u.Value == 1);
+            Where("SEX2 = 1", u => u.Sex2 == true);
+            Where("SEX2 = 1", u => (bool)u.Sex2);
+            Where("SEX2 = 1", u => u.Sex2.Value == true);
         }
 
     }

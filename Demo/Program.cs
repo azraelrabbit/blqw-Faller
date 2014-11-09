@@ -11,7 +11,7 @@ namespace Demo
     {
         static void Main(string[] args)
         {
-            Where<MyClass>(a => !a.sex == true && a.sex != true);
+            Where<MyClass>(a =>  true == a.sex);
 
             //DemoColumnsAndValues();
             //DemoValues();

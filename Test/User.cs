@@ -13,5 +13,6 @@ namespace Test
         public bool Sex { get; set; }
 
         public decimal? Value { get; set; }
+        public Boolean? Sex2 { get; set; }
     }
 }

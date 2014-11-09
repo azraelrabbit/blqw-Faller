@@ -13,6 +13,6 @@ namespace Demo
         public int ParentID { get; set; }
         public string Name { get; set; }
         public DateTime Birthday { get; set; }
-        public bool Sex { get; set; }
+        public bool? Sex { get; set; }
     }
 }
