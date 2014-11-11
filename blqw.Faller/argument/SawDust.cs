@@ -1,14 +1,13 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 
 namespace blqw
 {
     /// <summary> 表达式树解析结果
     /// </summary>
-    public struct SawDust
+    public struct SawDust : ISawDust
     {
         /// <summary> 初始化解析结果
         /// </summary>
@@ -16,6 +15,7 @@ namespace blqw
         /// <param name="type">结果类型</param>
         /// <param name="value">结果值</param>
         internal SawDust(Faller faller, DustType type, Object value)
+            :this()
         {
             if (type == DustType.Object && value is SawDust)
             {
@@ -39,11 +39,11 @@ namespace blqw
 
         /// <summary> 结果类型
         /// </summary>
-        public readonly DustType Type;
+        public DustType Type { get; private set; }
 
         /// <summary> 结果值
         /// </summary>
-        public readonly Object Value;
+        public Object Value { get; private set; }
 
         /// <summary> 是否已经执行了toSql
         /// </summary>

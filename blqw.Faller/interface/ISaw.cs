@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
 using System.Text;
 using System.Data.Common;
 using System.Reflection;
@@ -68,16 +66,16 @@ namespace blqw
         /// <param name="target">方法调用者</param>
         /// <param name="args">方法参数</param>
         /// <returns></returns>
-        string ParseMethod(MethodInfo method, SawDust target, SawDust[] args);
+        string ParseMethod(MethodInfo method, ISawDust target, ISawDust[] args);
         /// <summary> 将.NET中的属性解释为sql表达式
         /// </summary>
         /// <param name="property">实体属性</param>
         /// <param name="target">方法调用者</param>
-        string ParseProperty(PropertyInfo property, SawDust target);
+        string ParseProperty(PropertyInfo property, ISawDust target);
         /// <summary> 将.NET中的字段解释为sql表达式
         /// </summary>
         /// <param name="field">实体字段</param>
         /// <param name="target">方法调用者</param>
-        string ParseField(FieldInfo field, SawDust target);
+        string ParseField(FieldInfo field, ISawDust target);
     }
 }

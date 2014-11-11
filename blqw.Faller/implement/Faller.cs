@@ -129,7 +129,7 @@ namespace blqw
 
                 if (_state.DustType == DustType.Array)
                 {
-                    var arr = _state.Array as SawDust[];
+                    var arr = _state.Array as ISawDust[];
                     if (arr != null)
                     {
                         return string.Join(", ", arr.Select(it => it.ToSql()));
@@ -175,7 +175,7 @@ namespace blqw
                 Parse(expr);
                 if (_state.DustType == DustType.Array)
                 {
-                    var arr = _state.Array as SawDust[];
+                    var arr = _state.Array as ISawDust[];
                     if (replace == null)
                     {
                         if (arr != null)
@@ -858,7 +858,7 @@ namespace blqw
                 }
                 else
                 {
-                    var arr1 = new SawDust[length];
+                    var arr1 = new ISawDust[length];
                     var dust = GetSawDust();
                     if (i > 0)
                     {
@@ -883,7 +883,7 @@ namespace blqw
         private void Parse(NewExpression expr)
         {
             var length = expr.Arguments.Count;
-            var arr = new SawDust[length];
+            var arr = new ISawDust[length];
             for (int i = 0; i < length; i++)
             {
                 var column = expr.Arguments[i];
@@ -976,8 +976,8 @@ namespace blqw
         }
         private void Parse(MethodCallExpression expr)
         {
-            SawDust target;
-            SawDust[] args;
+            ISawDust target;
+            ISawDust[] args;
             //尝试直接调用,如果成功 返回true 如果失败,返回已解析的对象
             if (TryInvoke(expr, out target, out args))
             {
@@ -1006,7 +1006,7 @@ namespace blqw
                     {
                         var element = (string)args[1].Value;
                         string[] array;
-                        var enumerable = args[0].Value as SawDust[];
+                        var enumerable = args[0].Value as ISawDust[];
                         if (enumerable != null)
                         {
                             array = enumerable.Select(it => it.ToSql()).ToArray();
@@ -1020,7 +1020,7 @@ namespace blqw
                     }
                     else if (args[0].Type == DustType.Sql && args[1].Type == DustType.String)
                     {
-                        if (ParseStringMethod(method, args[0], new SawDust[] { args[1] }))
+                        if (ParseStringMethod(method, args[0], new ISawDust[] { args[1] }))
                         {
                             return;
                         }
@@ -1035,7 +1035,7 @@ namespace blqw
         #region ParseMethods
 
 
-        private bool ParseStringMethod(MethodInfo method, SawDust target, SawDust[] args)
+        private bool ParseStringMethod(MethodInfo method, ISawDust target, ISawDust[] args)
         {
             if (args.Length >= 1)
             {
@@ -1147,7 +1147,7 @@ namespace blqw
         /// <summary> 返回最后一次解析的结果
         /// </summary>
         /// <returns></returns>
-        private SawDust GetSawDust()
+        private ISawDust GetSawDust()
         {
             if (_state.DustType == DustType.Sql)
             {
@@ -1183,7 +1183,7 @@ namespace blqw
         /// <param name="target">方法的调用实例</param>
         /// <param name="args">方法参数</param>
         /// <returns></returns>
-        private bool TryInvoke(MethodCallExpression expr, out SawDust target, out SawDust[] args)
+        private bool TryInvoke(MethodCallExpression expr, out ISawDust target, out ISawDust[] args)
         {
             //判断方法调用实例,如果是null为静态方法,反之为实例方法
             if (expr.Object == null)
@@ -1198,7 +1198,7 @@ namespace blqw
 
             var exprArgs = expr.Arguments;
             var length = exprArgs.Count;
-            args = new SawDust[length];
+            args = new ISawDust[length];
             var call = target.Type != DustType.Sql;
             for (int i = 0; i < length; i++)
             {
@@ -1208,7 +1208,7 @@ namespace blqw
                     if (call) call = false;
                     args[i] = new SawDust(this, DustType.Sql, _state.Sql);
                 }
-                else if (_state.DustType == DustType.Array && _state.Array is SawDust[])
+                else if (_state.DustType == DustType.Array && _state.Array is ISawDust[])
                 {
                     if (call) call = false;
                     args[i] = new SawDust(this, DustType.Array, _state.Array);
@@ -1402,9 +1402,9 @@ namespace blqw
                     return _saw.AddBoolean(conv.ToBoolean(null), Parameters);
                 }
             }
-            else if (obj is SawDust)
+            else if (obj is ISawDust)
             {
-                return ((SawDust)obj).ToSql();
+                return ((ISawDust)obj).ToSql();
             }
             else if (obj is SqlExpr)
             {
@@ -1434,7 +1434,7 @@ namespace blqw
                 case DustType.Binary:
                     return _saw.AddObject(_state.Binary, Parameters);
                 case DustType.Array:
-                    var arr = _state.Array as SawDust[];
+                    var arr = _state.Array as ISawDust[];
                     if (arr != null)
                     {
                         return string.Join(", ", arr.Select(it => it.ToSql()));

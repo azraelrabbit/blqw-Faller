@@ -201,7 +201,7 @@ namespace blqw
         /// <param name="target">方法调用者</param>
         /// <param name="args">方法参数</param>
         /// <returns></returns>
-        public string ParseMethod(MethodInfo method, SawDust target, SawDust[] args)
+        public string ParseMethod(MethodInfo method, ISawDust target, ISawDust[] args)
         {
             AreNull(method, "method");
             string sql = null;
@@ -237,7 +237,7 @@ namespace blqw
             return sql ?? ParseMember(method, target, args);
         }
 
-        public string ParseProperty(PropertyInfo property, SawDust target)
+        public string ParseProperty(PropertyInfo property, ISawDust target)
         {
             AreNull(property, "property");
             if (property.ReflectedType == typeof(DateTime))
@@ -270,12 +270,12 @@ namespace blqw
                     return StringLength(target.ToSql());
                 }
             }
-            return ParseMember(property, target, new SawDust[0]);
+            return ParseMember(property, target, new ISawDust[0]);
         }
 
-        public string ParseField(FieldInfo field, SawDust target)
+        public string ParseField(FieldInfo field, ISawDust target)
         {
-            return ParseMember(field, target, new SawDust[0]);
+            return ParseMember(field, target, new ISawDust[0]);
         }
 
         #endregion
@@ -283,7 +283,7 @@ namespace blqw
         #region private ParseMethods
         /// <summary> 解释与数字类型相关的方法,并将方法分配给指定的方法
         /// </summary>
-        private string ParseNumberMethod(MethodInfo method, SawDust target, SawDust[] args)
+        private string ParseNumberMethod(MethodInfo method, ISawDust target, ISawDust[] args)
         {
             switch (method.Name)
             {
@@ -308,7 +308,7 @@ namespace blqw
 
         /// <summary> 解释与时间类型相关的方法,并将方法分配给指定的方法
         /// </summary>
-        private string ParseDateTimeMethod(MethodInfo method, SawDust target, SawDust[] args)
+        private string ParseDateTimeMethod(MethodInfo method, ISawDust target, ISawDust[] args)
         {
             switch (method.Name)
             {
@@ -344,7 +344,7 @@ namespace blqw
 
         /// <summary> 解释与字符类型相关的方法,并将方法分配给指定的方法
         /// </summary>
-        private string ParseCharMethod(MethodInfo method, SawDust target, SawDust[] args)
+        private string ParseCharMethod(MethodInfo method, ISawDust target, ISawDust[] args)
         {
             switch (method.Name)
             {
@@ -360,7 +360,7 @@ namespace blqw
 
         /// <summary> 解释与字符串类型相关的方法,并将方法分配给指定的方法
         /// </summary>
-        private string ParseStringMethod(MethodInfo method, SawDust target, SawDust[] args)
+        private string ParseStringMethod(MethodInfo method, ISawDust target, ISawDust[] args)
         {
             switch (method.Name)
             {
@@ -384,13 +384,13 @@ namespace blqw
 
         /// <summary> 获取并处理Trim方法所需的参数
         /// </summary>
-        private string GetTrimArg(SawDust[] args, int index)
+        private string GetTrimArg(ISawDust[] args, int index)
         {
             if (args == null || args.Length <= index)
             {
                 return null;
             }
-            var arr = (SawDust[])args[index].Value;
+            var arr = (ISawDust[])args[index].Value;
             var buff = new string[arr.Length + 2];
             buff[0] = "'";
             buff[buff.Length - 1] = "'";
@@ -500,7 +500,7 @@ namespace blqw
         /// <param name="method">需解释的方法</param>
         /// <param name="target">方法调用者</param>
         /// <param name="args">方法参数</param>
-        protected virtual string ParseMember(MemberInfo member, SawDust target, SawDust[] args)
+        protected virtual string ParseMember(MemberInfo member, ISawDust target, ISawDust[] args)
         {
             throw new NotSupportedException("无法解释方法:" + member.ToString());
         }
