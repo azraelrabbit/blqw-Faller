@@ -1,88 +1,88 @@
-# blqw.Faller ÇáÁ¿¼¶µÄ±í´ïÊ½Ê÷½âÎö¿ò¼Ü,¼òµ¥!Áé»î!Ç¿´ó!
+# blqw.Faller è½»é‡çº§çš„è¡¨è¾¾å¼æ ‘è§£æžæ¡†æž¶,ç®€å•!çµæ´»!å¼ºå¤§!
 
-### [¼òµ¥½éÉÜ¼°Ê¹ÓÃÕ¹Ê¾](http://www.cnblogs.com/blqw/p/Faller.html)
+### [ç®€å•ä»‹ç»åŠä½¿ç”¨å±•ç¤ºä¼ é€é—¨](http://www.cnblogs.com/blqw/p/Faller.html)
 
-## ¼ò½é  
-Faller(¿³Ê÷ÈË)ÊÇÒ»¸öÇáÁ¿¼¶µÄ±í´ïÊ½Ê÷½âÎö¿ò¼Ü  
-Éè¼Æ³õÖÔÊÇ¾¡Á¿µÄ¼òµ¥ºÍÁé»î  
-Ëü²»ÐèÒªÈÎºÎÆäËû×é¼þµÄÖ§³Ö  
-ËùÒÔ¿ÉÒÔËæÒâÇ¶Èëµ½ÈÎºÎÐÂÏîÄ¿»òÒÑÓÐÏîÄ¿ÖÐ  
-²»Í¬Êý¾Ý¿â½öÐèÒªÖØÐÂÊµÏÖ[ISaw](https://coding.net/u/blqw/p/blqw-Faller/git/blob/master/blqw.Faller/interface/ISaw.cs)½Ó¿Ú,¼´¿É¹¹Ôì²»Í¬µÄSQLÓï¾ä  
-µ±Ç°°æ±¾Ìá¹©MsSqlºÍOracleµÄ½âÊÍ·½Ê½  
+## ç®€ä»‹  
+Faller(ç æ ‘äºº)æ˜¯ä¸€ä¸ªè½»é‡çº§çš„è¡¨è¾¾å¼æ ‘è§£æžæ¡†æž¶  
+è®¾è®¡åˆè¡·æ˜¯å°½é‡çš„ç®€å•å’Œçµæ´»  
+å®ƒä¸éœ€è¦ä»»ä½•å…¶ä»–ç»„ä»¶çš„æ”¯æŒ  
+æ‰€ä»¥å¯ä»¥éšæ„åµŒå…¥åˆ°ä»»ä½•æ–°é¡¹ç›®æˆ–å·²æœ‰é¡¹ç›®ä¸­  
+ä¸åŒæ•°æ®åº“ä»…éœ€è¦é‡æ–°å®žçŽ°[ISaw](https://coding.net/u/blqw/p/blqw-Faller/git/blob/master/blqw.Faller/interface/ISaw.cs)æŽ¥å£,å³å¯æž„é€ ä¸åŒçš„SQLè¯­å¥  
+å½“å‰ç‰ˆæœ¬æä¾›MsSqlå’ŒOracleçš„è§£é‡Šæ–¹å¼  
 [SqlServerSaw](https://coding.net/u/blqw/p/blqw-Faller/git/blob/master/blqw.Faller/implement/SqlServerSaw.cs)  
 [OracleSaw](https://coding.net/u/blqw/p/blqw-Faller/git/blob/master/blqw.Faller/implement/OracleSaw.cs)  
   
-## ¸üÐÂËµÃ÷  
+## æ›´æ–°è¯´æ˜Ž  
 #### 2014.11.09
-* ÐÞÕý²¼¶ûµÄ¿É¿ÕÀàÐÍÔÚ==true|==falseÅÐ¶ÏÏÂ½âÎö´íÎóµÄÎÊÌâ ¸ÐÐ»ÍøÓÑ@²»¸úËæ
+* ä¿®æ­£å¸ƒå°”çš„å¯ç©ºç±»åž‹åœ¨==true|==falseåˆ¤æ–­ä¸‹è§£æžé”™è¯¯çš„é—®é¢˜ æ„Ÿè°¢ç½‘å‹@ä¸è·Ÿéš
 
 #### 2014.11.07
-* ÐÞÕýÒ»¸ölambdaÖÐ³öÏÖ2´ÎNot()»á½âÎö´íÎóµÄÎÊÌâ ¸ÐÐ»ÍøÓÑ@²»¸úËæ
+* ä¿®æ­£ä¸€ä¸ªlambdaä¸­å‡ºçŽ°2æ¬¡Not()ä¼šè§£æžé”™è¯¯çš„é—®é¢˜ æ„Ÿè°¢ç½‘å‹@ä¸è·Ÿéš
 
 #### 2014.11.05
-* Ö±½ÓÒýÈëLiteracyÔ´Âë,²»ÓÃÔÚ¶îÍâÒýÓÃÏîÄ¿
-* ¸ÐÐ»ÍøÓÑ @²»¸úËæ Ìá¹©bug·´À¡
-* ½â¾öÊµÌåÀàÖÐ¿É¿ÕÖµÀàÐÍ.ToString() ±¨´íµÄÎÊÌâ
-* ½â¾öÊµÌåÀàÖÐ¿É¿ÕÖµÀàÐÍ.Value ÊôÐÔ±¨´íµÄÎÊÌâ
-* ÐÂÔöÖ§³ÖÊµÌåÀà¿É¿ÕÖµÀàÐÍ.HasValue ÊôÐÔµÄ½âÎö,ÏÖÔÚ¿ÉÒÔµÃµ½ xxx IS NULL µÄsqlÓï¾ä
+* ç›´æŽ¥å¼•å…¥Literacyæºç ,ä¸ç”¨åœ¨é¢å¤–å¼•ç”¨é¡¹ç›®
+* æ„Ÿè°¢ç½‘å‹ @ä¸è·Ÿéš æä¾›bugåé¦ˆ
+* è§£å†³å®žä½“ç±»ä¸­å¯ç©ºå€¼ç±»åž‹.ToString() æŠ¥é”™çš„é—®é¢˜
+* è§£å†³å®žä½“ç±»ä¸­å¯ç©ºå€¼ç±»åž‹.Value å±žæ€§æŠ¥é”™çš„é—®é¢˜
+* æ–°å¢žæ”¯æŒå®žä½“ç±»å¯ç©ºå€¼ç±»åž‹.HasValue å±žæ€§çš„è§£æž,çŽ°åœ¨å¯ä»¥å¾—åˆ° xxx IS NULL çš„sqlè¯­å¥
 
 #### 2014.10.21
-* ½â¾ö²¿·ÖÐ¡bug
-* ÓÅ»¯´úÂë
-* ÒýÓÃ[Literacy](https://coding.net/u/blqw/p/blqw-Literacy)ÓÅ»¯ÐÔÄÜ
+* è§£å†³éƒ¨åˆ†å°bug
+* ä¼˜åŒ–ä»£ç 
+* å¼•ç”¨[Literacy](https://coding.net/u/blqw/p/blqw-Literacy)ä¼˜åŒ–æ€§èƒ½
 
 #### 2014.10.10
-* ÓÅ»¯ToColumnsAndValues,Ò²Ö§³ÖÄäÃûÀàÐÍ
+* ä¼˜åŒ–ToColumnsAndValues,ä¹Ÿæ”¯æŒåŒ¿åç±»åž‹
 
 #### 2014.09.17
-* ÐÞÕý±í´ïÊ½ÖÐ "".Split(char) ·½·¨½âÊÍ±¨´íµÄÎÊÌâ  
-* Ð¡·ù¶ÈÓÅ»¯
-* Ôö¼ÓÒ»¸öÊµ¼ÊÓ¦ÓÃÖÐµÄ Demo
+* ä¿®æ­£è¡¨è¾¾å¼ä¸­ "".Split(char) æ–¹æ³•è§£é‡ŠæŠ¥é”™çš„é—®é¢˜  
+* å°å¹…åº¦ä¼˜åŒ–
+* å¢žåŠ ä¸€ä¸ªå®žé™…åº”ç”¨ä¸­çš„ Demo
 
 #### 2014.07.23  
-* Ôö¼ÓÁË¶ÔÒì³£µÄ´¦Àí
-* ÐÞÕý³õÊ¼»¯Array¿ÉÄÜÔì³ÉµÄ´íÎó
-* ÓÅ»¯³õÊ¼»¯ArrayµÄ²Ù×÷
-* È·¶¨²»Ö§³Ö³õÊ¼»¯List±í´ïÊ½, Èç`Where<User>(u => new List<int>() {1,2,3,4,5 }.Contains(u.ID));`½«²»±»Ö§³Ö,¿ÉÒÔÊ¹ÓÃ`Where<User>(u => new []{1,2,3,4,5 }.Contains(u.ID));`´úÌæ  
-* ÓÅ»¯±í´ïÊ½ÖÐÈç¹ûÖ»ÓÐÒ»¸ö·ºÐÍÊµÌå²ÎÊý,ÔòsqlÖÐ²»Ê¹ÓÃ±ðÃû
-* ÐÞÕýSawDustÀàÐÍµÄÖµÇ¶Ì×¿ÉÄÜ´øÀ´µÄÎÊÌâ
+* å¢žåŠ äº†å¯¹å¼‚å¸¸çš„å¤„ç†
+* ä¿®æ­£åˆå§‹åŒ–Arrayå¯èƒ½é€ æˆçš„é”™è¯¯
+* ä¼˜åŒ–åˆå§‹åŒ–Arrayçš„æ“ä½œ
+* ç¡®å®šä¸æ”¯æŒåˆå§‹åŒ–Listè¡¨è¾¾å¼, å¦‚`Where<User>(u => new List<int>() {1,2,3,4,5 }.Contains(u.ID));`å°†ä¸è¢«æ”¯æŒ,å¯ä»¥ä½¿ç”¨`Where<User>(u => new []{1,2,3,4,5 }.Contains(u.ID));`ä»£æ›¿  
+* ä¼˜åŒ–è¡¨è¾¾å¼ä¸­å¦‚æžœåªæœ‰ä¸€ä¸ªæ³›åž‹å®žä½“å‚æ•°,åˆ™sqlä¸­ä¸ä½¿ç”¨åˆ«å
+* ä¿®æ­£SawDustç±»åž‹çš„å€¼åµŒå¥—å¯èƒ½å¸¦æ¥çš„é—®é¢˜
 
 #### 2014.07.22  
-* ÕûÀí´úÂë  
-* ÍêÉÆ×¢ÊÍ  
-* Ôö¼ÓÁË½âÊÍmssqlµÄ·½Ê½  
-* ÒÑÖªBUG : ÔÚ±í´ïÊ¼Ê½ÖÐ³õÊ¼»¯List»òÕßArrayÓÐ¿ÉÄÜÎÞ·¨½âÎö,ÕýÔÚ½â¾ö
+* æ•´ç†ä»£ç   
+* å®Œå–„æ³¨é‡Š  
+* å¢žåŠ äº†è§£é‡Šmssqlçš„æ–¹å¼  
+* å·²çŸ¥BUG : åœ¨è¡¨è¾¾å§‹å¼ä¸­åˆå§‹åŒ–Listæˆ–è€…Arrayæœ‰å¯èƒ½æ— æ³•è§£æž,æ­£åœ¨è§£å†³
 
 #### 2014.07.18  
-* Ôö¼Ó²¿·Ö·½·¨  
+* å¢žåŠ éƒ¨åˆ†æ–¹æ³•  
 
 #### 2014.07.17  
-* Íê³É²¿·Ö´úÂëµÄÕûÀíºÍ×¢ÊÍ¹¤×÷  
+* å®Œæˆéƒ¨åˆ†ä»£ç çš„æ•´ç†å’Œæ³¨é‡Šå·¥ä½œ  
 
 #### 2014.07.16  
-* µ¥Ôª²âÊÔÒÑ¾­Íê³ÉÁË  
-* ½ÓÏÂÀ´ÒªÕûÀí´úÂë,ÔÙÌí¼Ó×¢ÊÍ  
-* ¼ÌÐø¼ÓÓÍ°É  
+* å•å…ƒæµ‹è¯•å·²ç»å®Œæˆäº†  
+* æŽ¥ä¸‹æ¥è¦æ•´ç†ä»£ç ,å†æ·»åŠ æ³¨é‡Š  
+* ç»§ç»­åŠ æ²¹å§  
 
 
-## ÌØÉ«  
-#### ¿ÉÒÔ°ÑDateTime.Now×ª»»³ÉÊý¾Ý¿âµ±Ç°Ê±¼ä¶ÔÏó,ÈçOracleµÄSYSDATE  
+## ç‰¹è‰²  
+#### å¯ä»¥æŠŠDateTime.Nowè½¬æ¢æˆæ•°æ®åº“å½“å‰æ—¶é—´å¯¹è±¡,å¦‚Oracleçš„SYSDATE  
 
     Where(u => u.Birthday < DateTime.Now);    // a.BIRTHDAY < SYSDATE  
 
-#### ¿ÉÒÔÁé»î´¦Àí¸ü¶àµÄC#·½·¨ -> Êý¾Ý¿âº¯Êý,Èç  
+#### å¯ä»¥çµæ´»å¤„ç†æ›´å¤šçš„C#æ–¹æ³• -> æ•°æ®åº“å‡½æ•°,å¦‚  
 
     Where(u => u.Birthday.Day == 1);          //EXTRACT(DAY FROM a.BIRTHDAY) = 1  
     Where(u => u.Name.Trim() == "");          //ltrim(rtrim(a.NAME)) = :auto_p0  
     Where(u => string.IsNullOrEmpty(u.Name)); //a.NAME IS NULL OR a.NAME = ''  
 
-#### ¿ÉÒÔÔÚ±í´ïÊ½Ê÷ÖÐÁé»î²åÈësql±í´ïÊ½  
+#### å¯ä»¥åœ¨è¡¨è¾¾å¼æ ‘ä¸­çµæ´»æ’å…¥sqlè¡¨è¾¾å¼  
 
     Where(u => (SqlExpr)"rownum < 10");               //rownum < 10   
     Where(u => (SqlExpr)"rownum < 10" && u.ID > 10);  //rownum < 10 AND a.ID > 10  
 
 
-##Demo´úÂë  
+##Demoä»£ç   
 ```csharp
 public static class UserBLL
 {
