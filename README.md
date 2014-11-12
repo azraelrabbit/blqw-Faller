@@ -11,6 +11,47 @@ Faller(砍树人)是一个轻量级的表达式树解析框架
 当前版本提供MsSql和Oracle的解释方式  
 [SqlServerSaw](https://coding.net/u/blqw/p/blqw-Faller/git/blob/master/blqw.Faller/implement/SqlServerSaw.cs)  
 [OracleSaw](https://coding.net/u/blqw/p/blqw-Faller/git/blob/master/blqw.Faller/implement/OracleSaw.cs)  
+
+## 特色  
+#### 可以把DateTime.Now转换成数据库当前时间对象,如Oracle的SYSDATE  
+
+    Where(u => u.Birthday < DateTime.Now);    // a.BIRTHDAY < SYSDATE  
+
+#### 可以灵活处理更多的C#方法 -> 数据库函数,如  
+
+    Where(u => u.Birthday.Day == 1);          //EXTRACT(DAY FROM a.BIRTHDAY) = 1  
+    Where(u => u.Name.Trim() == "");          //ltrim(rtrim(a.NAME)) = :auto_p0  
+    Where(u => string.IsNullOrEmpty(u.Name)); //a.NAME IS NULL OR a.NAME = ''  
+
+#### 可以在表达式树中灵活插入sql表达式  
+
+    Where(u => (SqlExpr)"rownum < 10");               //rownum < 10   
+    Where(u => (SqlExpr)"rownum < 10" && u.ID > 10);  //rownum < 10 AND a.ID > 10  
+
+
+##Demo代码  
+```csharp
+public static class UserBLL
+{
+    public static List<User> GetUsers(Expression<Func<User, bool>> where)
+    {
+        var parse = Faller.Create(where);
+        var sql = parse.ToWhere(new MySaw());
+        using (var conn = new SqlConnection("Data Source=.;Initial Catalog=Test;Integrated Security=True"))
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = "select * from test where " + sql;
+            cmd.Parameters.AddRange(parse.Parameters.ToArray());
+            conn.Open();
+            using (var reader = cmd.ExecuteReader())
+            {
+                return Convert2.ToList<User>(reader);
+            }
+        }
+    }
+}
+```
+
   
 ## 更新说明  
 #### 2014.11.09
@@ -64,43 +105,3 @@ Faller(砍树人)是一个轻量级的表达式树解析框架
 * 接下来要整理代码,再添加注释  
 * 继续加油吧  
 
-
-## 特色  
-#### 可以把DateTime.Now转换成数据库当前时间对象,如Oracle的SYSDATE  
-
-    Where(u => u.Birthday < DateTime.Now);    // a.BIRTHDAY < SYSDATE  
-
-#### 可以灵活处理更多的C#方法 -> 数据库函数,如  
-
-    Where(u => u.Birthday.Day == 1);          //EXTRACT(DAY FROM a.BIRTHDAY) = 1  
-    Where(u => u.Name.Trim() == "");          //ltrim(rtrim(a.NAME)) = :auto_p0  
-    Where(u => string.IsNullOrEmpty(u.Name)); //a.NAME IS NULL OR a.NAME = ''  
-
-#### 可以在表达式树中灵活插入sql表达式  
-
-    Where(u => (SqlExpr)"rownum < 10");               //rownum < 10   
-    Where(u => (SqlExpr)"rownum < 10" && u.ID > 10);  //rownum < 10 AND a.ID > 10  
-
-
-##Demo代码  
-```csharp
-public static class UserBLL
-{
-    public static List<User> GetUsers(Expression<Func<User, bool>> where)
-    {
-        var parse = Faller.Create(where);
-        var sql = parse.ToWhere(new MySaw());
-        using (var conn = new SqlConnection("Data Source=.;Initial Catalog=Test;Integrated Security=True"))
-        using (var cmd = conn.CreateCommand())
-        {
-            cmd.CommandText = "select * from test where " + sql;
-            cmd.Parameters.AddRange(parse.Parameters.ToArray());
-            conn.Open();
-            using (var reader = cmd.ExecuteReader())
-            {
-                return Convert2.ToList<User>(reader);
-            }
-        }
-    }
-}
-```
