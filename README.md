@@ -1,13 +1,16 @@
 # blqw.Faller 轻量级的表达式树解析框架,简单!灵活!强大!
+
+### [简单介绍及使用展示](http://www.cnblogs.com/blqw/p/Faller.html)
+
 ## 简介  
 Faller(砍树人)是一个轻量级的表达式树解析框架  
 设计初衷是尽量的简单和灵活  
 它不需要任何其他组件的支持  
 所以可以随意嵌入到任何新项目或已有项目中  
-不同数据库仅需要重新实现[ISaw](https://code.csdn.net/jy02305022/blqw-faller/tree/master/blqw.Faller/interface/ISaw.cs)接口,即可构造不同的SQL语句  
+不同数据库仅需要重新实现[ISaw](https://coding.net/u/blqw/p/blqw-Faller/git/blob/master/blqw.Faller/interface/ISaw.cs)接口,即可构造不同的SQL语句  
 当前版本提供MsSql和Oracle的解释方式  
-[MsSqlSaw](https://code.csdn.net/jy02305022/blqw-faller/tree/master/blqw.Faller/implement/MsSqlSaw.cs)  
-[OracleSaw](https://code.csdn.net/jy02305022/blqw-faller/tree/master/blqw.Faller/implement/OracleSaw.cs)  
+[SqlServerSaw](https://coding.net/u/blqw/p/blqw-Faller/git/blob/master/blqw.Faller/implement/SqlServerSaw.cs)  
+[OracleSaw](https://coding.net/u/blqw/p/blqw-Faller/git/blob/master/blqw.Faller/implement/OracleSaw.cs)  
   
 ## 更新说明  
 #### 2014.11.09
@@ -26,7 +29,7 @@ Faller(砍树人)是一个轻量级的表达式树解析框架
 #### 2014.10.21
 * 解决部分小bug
 * 优化代码
-* 引用[Literacy](https://code.csdn.net/jy02305022/blqw.Literacy)优化性能
+* 引用[Literacy](https://coding.net/u/blqw/p/blqw-Literacy)优化性能
 
 #### 2014.10.10
 * 优化ToColumnsAndValues,也支持匿名类型
