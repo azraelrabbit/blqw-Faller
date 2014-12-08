@@ -32,5 +32,8 @@
         /// <summary> 字符串
         /// </summary>
         String = 8,
+        /// <summary> 子表达式 
+        /// </summary>
+        SubExpression = 9,
     }
 }

@@ -53,6 +53,7 @@
     <Compile Include="argument\SqlExpr.cs" />
     <Compile Include="implement\BaseSaw.cs" />
     <Compile Include="implement\SqlServerSaw.cs" />
+    <Compile Include="interface\ISubExpression.cs" />
     <Compile Include="Literacy\AttributeCollection.cs" />
     <Compile Include="Literacy\Convert2.cs" />
     <Compile Include="Literacy\Delegate.cs" />

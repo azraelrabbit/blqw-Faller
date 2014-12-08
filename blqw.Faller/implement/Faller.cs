@@ -30,14 +30,15 @@ namespace blqw
         /// <summary> 创建一个解析器
         /// </summary>
         /// <param name="expr">lambda表达式</param>
-        public static IFaller Create(LambdaExpression expr)
+        public static IFaller Create(LambdaExpression expr,int aliasOffset = 0)
         {
             NotNull(expr, "expr");
             NotNull(expr.Body, "expr.Body");
             return new Faller() {
                 _lambda = expr,
                 Parameters = new List<DbParameter>(),
-                EnabledAlias = expr.Parameters.Count > 1  //当对象只有1个的时候不使用别名
+                _aliasOffset = aliasOffset,
+                EnabledAlias = expr.Parameters.Count + aliasOffset > 1  //当对象只有1个的时候不使用别名
             };
         }
 
@@ -48,7 +49,7 @@ namespace blqw
             NotNull(saw, "saw");
             _entry = WHERE;
             _saw = saw;
-            _state = new State();
+            _state = new State(this);
             try
             {
                 return GetSql(_lambda.Body);
@@ -68,7 +69,7 @@ namespace blqw
             NotNull(saw, "saw");
             _entry = ORDERBY;
             _saw = saw;
-            _state = new State();
+            _state = new State(this);
             var expr = _lambda.Body;
             if (asc)
             {
@@ -82,7 +83,7 @@ namespace blqw
             NotNull(saw, "saw");
             _entry = SETS;
             _saw = saw;
-            _state = new State();
+            _state = new State(this);
             var expr = _lambda.Body as MemberInitExpression;
             if (expr == null)
             {
@@ -115,7 +116,7 @@ namespace blqw
             NotNull(saw, "saw");
             _entry = COLUMNS;
             _saw = saw;
-            _state = new State();
+            _state = new State(this);
             var expr = _lambda.Body;
             try
             {
@@ -168,7 +169,7 @@ namespace blqw
                 _entry = VALUES;
             }
             _saw = saw;
-            _state = new State();
+            _state = new State(this);
             var expr = _lambda.Body;
             try
             {
@@ -217,7 +218,7 @@ namespace blqw
             NotNull(saw, "saw");
             _entry = COLUMNS_VALUES;
             _saw = saw;
-            _state = new State();
+            _state = new State(this);
             var expr = _lambda.Body as MemberInitExpression;
             if (expr != null)
             {
@@ -271,6 +272,9 @@ namespace blqw
         /// <summary> 是否已抛出异常
         /// </summary>
         private bool _throw = false;
+        /// <summary> 别名偏移量
+        /// </summary>
+        private int _aliasOffset;
         #endregion
 
         #region State
@@ -278,7 +282,12 @@ namespace blqw
         /// </summary>
         private class State
         {
-            bool _unaryNot;
+            private Faller _faller;
+            public State(Faller faller)
+            {
+                _faller = faller;
+            }
+            private bool _unaryNot;
             /// <summary> 验证当前状态
             /// </summary>
             /// <param name="type"></param>
@@ -348,6 +357,7 @@ namespace blqw
             private string _sql;
             private object _object;
             private IConvertible _number;
+            private ISubExpression _subExpression;
             private IEnumerable _array;
             private bool _boolean;
             private DateTime _datetime;
@@ -376,6 +386,8 @@ namespace blqw
                     {
                         case DustType.Object:
                             return _object;
+                        case DustType.SubExpression:
+                            return _subExpression;
                         case DustType.Number:
                             return _number;
                         case DustType.Array:
@@ -454,6 +466,12 @@ namespace blqw
                     {
                         DustType = DustType.Sql;
                         _sql = ((SqlExpr)value).Sql;
+                    }
+                    else if (value is ISubExpression)
+                    {
+                        DustType = DustType.SubExpression;
+                        _subExpression = ((ISubExpression)value);
+                        _subExpression.ParentExpression = _faller._lambda;
                     }
                     else
                     {
@@ -547,6 +565,19 @@ namespace blqw
                 }
             }
 
+            public ISubExpression SubExpression
+            {
+                get
+                {
+                    Check(blqw.DustType.SubExpression);
+                    return _subExpression;
+                }
+                set
+                {
+                    DustType = blqw.DustType.SubExpression;
+                    _subExpression = value;
+                }
+            }
             #endregion
 
             /// <summary> 判断值是否为空
@@ -564,6 +595,8 @@ namespace blqw
                         return _string == null;
                     case DustType.Binary:
                         return _binary == null;
+                    case DustType.SubExpression:
+                        return _subExpression == null;
                     default:
                         return false;
                 }
@@ -969,6 +1002,9 @@ namespace blqw
                         }
                     }
                     return;
+                case ExpressionType.Quote:
+                    _state.Object = expr.Operand;
+                    return;
                 default:
                     Throw(expr);
                     throw new NotImplementedException();
@@ -1185,6 +1221,7 @@ namespace blqw
         /// <returns></returns>
         private bool TryInvoke(MethodCallExpression expr, out ISawDust target, out ISawDust[] args)
         {
+            ISubExpression subexpr = null;
             //判断方法调用实例,如果是null为静态方法,反之为实例方法
             if (expr.Object == null)
             {
@@ -1193,6 +1230,7 @@ namespace blqw
             else
             {
                 Parse(expr.Object);
+                if(_state.DustType == DustType.SubExpression)subexpr=_state.SubExpression;
                 target = GetSawDust();
             }
 
@@ -1221,7 +1259,15 @@ namespace blqw
 
             if (call)
             {
-                _state.Object = expr.Method.Invoke(target.Value, args.Select(it => it.Value).ToArray());
+                var method = expr.Method;
+                if (subexpr != null && !TypesHelper.IsChild(typeof(ISubExpression),method.ReturnType))
+                {
+                    _state.Sql = subexpr.GetSqlString(args);
+                }
+                else
+                {
+                    _state.Object = method.Invoke(target.Value, args.Select(it => it.Value).ToArray());
+                }
                 return true;
             }
             else
@@ -1567,5 +1613,6 @@ namespace blqw
 
             return new KeyValuePair<string, string>(string.Join(", ", columns), string.Join(", ", values));
         }
+
     }
 }
