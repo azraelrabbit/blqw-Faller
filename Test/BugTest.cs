@@ -82,5 +82,18 @@ namespace Test
             Where("SEX2 = 1", u => u.Sex2.Value == true);
         }
 
+        [TestMethod]
+        public void Where_Boolean()
+        {
+            var b = true;
+            Where("SEX = 1", u => u.Sex == b);
+            Where("SEX = 1", u => u.Sex == true);
+            Where("SEX = 0", u => u.Sex == false);
+            Where("SEX = 1", u => u.Sex != false);
+            Where("SEX = 0", u => !u.Sex != false);
+            Where("SEX = 1", u => u.Sex);
+            Where("SEX = 0", u => !u.Sex);
+        }
+
     }
 }

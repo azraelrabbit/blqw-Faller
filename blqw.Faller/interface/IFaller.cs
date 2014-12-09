@@ -42,5 +42,8 @@ namespace blqw
         /// <summary> 转换Sql语句过程中产生的参数
         /// </summary>
         ICollection<DbParameter> Parameters { get; }
+        /// <summary> 存在子表达式
+        /// </summary>
+        bool ExistsSubExpression { get; set; }
     }
 }

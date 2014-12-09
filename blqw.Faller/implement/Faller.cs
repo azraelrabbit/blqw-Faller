@@ -30,15 +30,15 @@ namespace blqw
         /// <summary> 创建一个解析器
         /// </summary>
         /// <param name="expr">lambda表达式</param>
-        public static IFaller Create(LambdaExpression expr,int aliasOffset = 0)
+        public static IFaller Create(LambdaExpression expr, LambdaExpression parentExpr = null)
         {
             NotNull(expr, "expr");
             NotNull(expr.Body, "expr.Body");
             return new Faller() {
                 _lambda = expr,
                 Parameters = new List<DbParameter>(),
-                _aliasOffset = aliasOffset,
-                EnabledAlias = expr.Parameters.Count + aliasOffset > 1  //当对象只有1个的时候不使用别名
+                EnabledAlias = expr.Parameters.Count > 1 || parentExpr != null,  //当对象只有1个的时候不使用别名
+                _parentExpr = parentExpr
             };
         }
 
@@ -52,7 +52,16 @@ namespace blqw
             _state = new State(this);
             try
             {
-                return GetSql(_lambda.Body);
+                Parse(_lambda.Body);
+                if (_state.IsParameter)
+                {
+                    return _saw.BinaryOperation(_state.Sql, BinaryOperator.Equal, AddBoolean(true));
+                }
+                else if (_state.DustType == DustType.Boolean)
+                {
+                    return (_state.Boolean) ? " 1 = 1" : " 1 = 0";
+                }
+                return GetSql();
             }
             catch (Exception ex)
             {
@@ -240,6 +249,9 @@ namespace blqw
         /// <summary> 是否使用别名
         /// </summary>
         public bool EnabledAlias { get; set; }
+        /// <summary> 存在子表达式
+        /// </summary>
+        public bool ExistsSubExpression { get; set; }
 
         #region EntryFlags
         private const int WHERE = 1;
@@ -272,9 +284,9 @@ namespace blqw
         /// <summary> 是否已抛出异常
         /// </summary>
         private bool _throw = false;
-        /// <summary> 别名偏移量
+        /// <summary> 父表达式
         /// </summary>
-        private int _aliasOffset;
+        private LambdaExpression _parentExpr;
         #endregion
 
         #region State
@@ -288,6 +300,7 @@ namespace blqw
                 _faller = faller;
             }
             private bool _unaryNot;
+            private bool _isParameter;
             /// <summary> 验证当前状态
             /// </summary>
             /// <param name="type"></param>
@@ -352,6 +365,18 @@ namespace blqw
                 }
             }
 
+
+            public bool IsParameter
+            {
+                get { return _isParameter; }
+                set
+                {
+                    Check(blqw.DustType.Sql);
+                    _isParameter = value;
+                }
+            }
+
+
             #region Value
 
             private string _sql;
@@ -373,6 +398,7 @@ namespace blqw
                 }
                 set
                 {
+                    if (_isParameter) _isParameter = false;
                     DustType = blqw.DustType.Sql;
                     _sql = value;
                 }
@@ -412,6 +438,7 @@ namespace blqw
                 }
                 set
                 {
+                    if (_isParameter) _isParameter = false;
                     _object = null;
                     var conv = value as IConvertible;
                     if (conv != null)
@@ -490,6 +517,7 @@ namespace blqw
                 }
                 set
                 {
+                    if (_isParameter) _isParameter = false;
                     DustType = blqw.DustType.Number;
                     _number = value;
                 }
@@ -504,6 +532,7 @@ namespace blqw
                 }
                 set
                 {
+                    if (_isParameter) _isParameter = false;
                     DustType = blqw.DustType.Array;
                     _array = value;
                 }
@@ -518,6 +547,7 @@ namespace blqw
                 }
                 set
                 {
+                    if (_isParameter) _isParameter = false;
                     DustType = blqw.DustType.Boolean;
                     _boolean = value;
                 }
@@ -532,6 +562,7 @@ namespace blqw
                 }
                 set
                 {
+                    if (_isParameter) _isParameter = false;
                     DustType = blqw.DustType.DateTime;
                     _datetime = value;
                 }
@@ -546,6 +577,7 @@ namespace blqw
                 }
                 set
                 {
+                    if (_isParameter) _isParameter = false;
                     DustType = blqw.DustType.Binary;
                     _binary = value;
                 }
@@ -560,6 +592,7 @@ namespace blqw
                 }
                 set
                 {
+                    if (_isParameter) _isParameter = false;
                     DustType = blqw.DustType.String;
                     _string = value;
                 }
@@ -574,6 +607,7 @@ namespace blqw
                 }
                 set
                 {
+                    if (_isParameter) _isParameter = false;
                     DustType = blqw.DustType.SubExpression;
                     _subExpression = value;
                 }
@@ -735,6 +769,7 @@ namespace blqw
                 Parse(UnaryExpression.IsTrue(expr.Left));
                 return;
             }
+
             var right = GetSawDust();
             // 解析 expr.Left 部分
             Parse(expr.Left);
@@ -935,24 +970,28 @@ namespace blqw
         {
             //命名参数,返回 表别名.列名
             var index = _lambda.Parameters.IndexOf(expr);
-            _state.Sql = _saw.GetColumn(GetAlias(index), member);
-            if (member.MemberType == MemberTypes.Property)
+            if (_parentExpr != null)
             {
-                _state.Sql = _saw.GetColumn(GetAlias(index), (PropertyInfo)member);
-            }
-            else
-            {
-                _state.Sql = _saw.GetColumn(GetAlias(index), (FieldInfo)member);
-            }
-            if (_entry == WHERE)
-            {
-                Type type = (member.MemberType == MemberTypes.Property) ? ((PropertyInfo)member).PropertyType : ((FieldInfo)member).FieldType;
-
-                if (type == typeof(bool) || type == typeof(bool?))
+                if (index == -1)
                 {
-                    _state.Sql = _saw.BinaryOperation(_state.Sql, BinaryOperator.Equal, AddBoolean(!_state.UnaryNot));
+                    index = _parentExpr.Parameters.IndexOf(expr);
+                }
+                else
+                {
+                    index += _parentExpr.Parameters.Count;
                 }
             }
+            _state.Sql = _saw.GetColumn(GetAlias(index), member);
+            _state.IsParameter = true;
+            //if (_entry == WHERE)
+            //{
+            //    Type type = (member.MemberType == MemberTypes.Property) ? ((PropertyInfo)member).PropertyType : ((FieldInfo)member).FieldType;
+
+            //    if (type == typeof(bool) || type == typeof(bool?))
+            //    {
+            //        _state.Sql = _saw.BinaryOperation(_state.Sql, BinaryOperator.Equal, AddBoolean(!_state.UnaryNot));
+            //    }
+            //}
         }
         private void Parse(TypeBinaryExpression expr) { Throw("不支持TypeBinaryExpression"); }
         private void Parse(UnaryExpression expr)
@@ -967,9 +1006,9 @@ namespace blqw
                     {
                         _state.Boolean = _state.Boolean != _state.UnaryNot;
                     }
-                    else if (_state.DustType != DustType.Sql)
+                    else if (_state.DustType != DustType.Sql || _state.IsParameter)
                     {
-                        _state.Sql = _saw.BinaryOperation(GetSql(), BinaryOperator.NotEqual, AddBoolean(_state.UnaryNot));
+                        _state.Sql = _saw.BinaryOperation(_state.Sql, BinaryOperator.Equal, AddBoolean(!_state.UnaryNot));
                     }
                     _state.Not();
                     return;
@@ -979,9 +1018,9 @@ namespace blqw
                     {
                         _state.Boolean = _state.Boolean == _state.UnaryNot;
                     }
-                    else if (_state.DustType != DustType.Sql)
+                    else if (_state.DustType != DustType.Sql || _state.IsParameter)
                     {
-                        _state.Sql = _saw.BinaryOperation(GetSql(), BinaryOperator.Equal, AddBoolean(_state.UnaryNot));
+                        _state.Sql = _saw.BinaryOperation(_state.Sql, BinaryOperator.Equal, AddBoolean(!_state.UnaryNot));
                     }
                     return;
                 case ExpressionType.Convert:
@@ -1004,6 +1043,7 @@ namespace blqw
                     return;
                 case ExpressionType.Quote:
                     _state.Object = expr.Operand;
+                    ExistsSubExpression = true;
                     return;
                 default:
                     Throw(expr);
@@ -1230,7 +1270,7 @@ namespace blqw
             else
             {
                 Parse(expr.Object);
-                if(_state.DustType == DustType.SubExpression)subexpr=_state.SubExpression;
+                if (_state.DustType == DustType.SubExpression) subexpr = _state.SubExpression;
                 target = GetSawDust();
             }
 
@@ -1260,7 +1300,7 @@ namespace blqw
             if (call)
             {
                 var method = expr.Method;
-                if (subexpr != null && !TypesHelper.IsChild(typeof(ISubExpression),method.ReturnType))
+                if (subexpr != null && !TypesHelper.IsChild(typeof(ISubExpression), method.ReturnType))
                 {
                     _state.Sql = subexpr.GetSqlString(args);
                 }
