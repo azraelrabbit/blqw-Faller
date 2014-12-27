@@ -2924,7 +2924,6 @@ namespace blqw
             }
             var ti = TypesHelper.GetTypeInfo<T>();
             var lit = ti.IgnoreCaseLiteracy;
-            var props = GetProperties(reader, lit);
             var list = new List<T>();
             if (ti.IsSpecialType)
             {
@@ -2935,6 +2934,7 @@ namespace blqw
             }
             else
             {
+                var props = GetProperties(reader, lit);
                 while (reader.Read())
                 {
                     var model = (T)lit.NewObject();
@@ -2994,7 +2994,6 @@ namespace blqw
             }
             var ti = TypesHelper.GetTypeInfo(typeof(T));
             var lit = ti.IgnoreCaseLiteracy;
-            var props = GetProperties(table, lit);
             var list = new List<T>();
             if (ti.IsSpecialType)
             {
@@ -3005,6 +3004,7 @@ namespace blqw
             }
             else
             {
+                var props = GetProperties(table, lit);
                 foreach (DataRow row in table.Rows)
                 {
                     var model = (T)lit.NewObject();
@@ -3032,7 +3032,6 @@ namespace blqw
                 {
                     props[i] = p;
                 }
-                props[i] = p;
             }
             return props;
         }
@@ -3076,7 +3075,196 @@ namespace blqw
         }
         #endregion
 
+
+        public static T ToEntity<T>(object model, bool ignoreCase)
+        {
+            Literacy lit1;
+            Literacy lit2;
+            if (ignoreCase)
+            {
+                lit1 = TypesHelper.GetTypeInfo(model.GetType()).IgnoreCaseLiteracy;
+                lit2 = TypesHelper.GetTypeInfo<T>().IgnoreCaseLiteracy;
+            }
+            else
+            {
+                lit1 = TypesHelper.GetTypeInfo(model.GetType()).Literacy;
+                lit2 = TypesHelper.GetTypeInfo<T>().Literacy;
+            }
+            List<ObjectProperty> props = new List<ObjectProperty>();
+            T result = (T)lit2.NewObject();
+            foreach (var p1 in lit1.Property)
+            {
+                if (p1.CanRead)
+                {
+                    var p2 = lit2.Property.Mapping(p1.MappingName ?? p1.Name) ?? lit2.Property[p1.MappingName ?? p1.Name];
+                    if (p2 != null && p2.CanWrite)
+                    {
+                        var value = p1.GetValue(model);
+                        if (p2.MemberType == p1.MemberType)
+                        {
+                            p2.SetValue(result, value);
+                        }
+                        else
+                        {
+                            p2.SetValue(result, ChangedType(value, p2.MemberType));
+                        }
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        public static DataTable ToDataTable<T>(IEnumerable<T> models)
+        {
+            var lit = TypesHelper.GetTypeInfo<T>().Literacy;
+            var table = new DataTable();
+            var props = new List<ObjectProperty>();
+            foreach (var prop in lit.Property)
+            {
+                if (prop.CanRead)
+                {
+                    props.Add(prop);
+                    var name = prop.MappingName ?? prop.Name;
+                    table.Columns.Add(prop.Name, prop.MemberType);
+                }
+            }
+            var rows = table.Rows;
+            var length = props.Count;
+            foreach (var m in models)
+            {
+                var row = table.NewRow();
+                for (int i = 0; i < length; i++)
+                {
+                    row[i] = props[i].GetValue(m);
+                }
+                rows.Add(row);
+            }
+            return table;
+        }
+
         #endregion
 
+        #region 半角全角转换
+        /// <summary>
+        /// 半角转全角
+        /// </summary>
+        /// <param name="input">任意字符串</param>
+        /// <returns>全角字符串</returns>
+        ///<remarks>
+        ///全角空格为12288，半角空格为32
+        ///其他字符半角(33-126)与全角(65281-65374)的对应关系是：均相差65248
+        ///</remarks>
+        public static string ToSBC(string input)
+        {
+            //半角转全角：
+            char[] arr = input.ToCharArray();
+            var length = arr.Length;
+            unsafe
+            {
+                fixed (char* p = arr)
+                {
+                    for (int i = 0; i < length; i++)
+                    {
+                        var c = p[i];
+                        if (TryToSBC(ref c))
+                        {
+                            p[i] = c;
+                        }
+                    }
+                    return new string(p, 0, length);
+                }
+            }
+        }
+
+        /// <summary> 半角转全角
+        /// </summary>
+        /// <param name="c">字符</param>
+        ///<remarks>
+        ///全角空格为12288，半角空格为32
+        ///其他字符半角(33-126)与全角(65281-65374)的对应关系是：均相差65248
+        ///</remarks>
+        public static char ToSBC(char c)
+        {
+            TryToSBC(ref c);
+            return c;
+        }
+
+        public static bool TryToSBC(ref char c)
+        {
+            if (c < 127)
+            {
+                if (c > 32)
+                {
+                    c = (char)(c + 65248);
+                    return true;
+                }
+                else if (c == 32)
+                {
+                    c = (char)12288;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary> 全角转半角(DBC case) </summary>
+        /// <param name="input">任意字符串</param>
+        /// <returns>半角字符串</returns>
+        ///<remarks>
+        /// 全角空格为12288，半角空格为32
+        /// 其他字符半角(33-126)与全角(65281-65374)的对应关系是：均相差65248
+        ///</remarks>
+        public static string ToDBC(string input)
+        {
+            //半角转全角：
+            char[] arr = input.ToCharArray();
+            var length = arr.Length;
+            unsafe
+            {
+                fixed (char* p = arr)
+                {
+                    for (int i = 0; i < length; i++)
+                    {
+                        var c = p[i];
+                        if (TryToDBC(ref c))
+                        {
+                            p[i] = c;
+                        }
+                    }
+                    return new string(p, 0, length);
+                }
+            }
+        }
+
+
+        /// <summary> 全角转半角
+        /// </summary>
+        /// <param name="c">字符</param>
+        ///<remarks>
+        /// 全角空格为12288，半角空格为32
+        /// 其他字符半角(33-126)与全角(65281-65374)的对应关系是：均相差65248
+        ///</remarks>
+        public static char ToDBC(char c)
+        {
+            TryToDBC(ref c);
+            return c;
+        }
+
+        public static bool TryToDBC(ref char c)
+        {
+            if (c == 12288)
+            {
+                c = (char)32;
+                return true;
+            }
+            else if (c >= 65281 && c <= 65374)
+            {
+                c = (char)(c - 65248);
+                return true;
+            }
+            return false;
+        }
+        #endregion
     }
 }

@@ -8,7 +8,7 @@
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>blqw</RootNamespace>
-    <AssemblyName>blqw</AssemblyName>
+    <AssemblyName>blqw.Faller</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -20,6 +20,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -28,6 +29,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Oracle.ManagedDataAccess, Version=4.121.1.0, Culture=neutral, PublicKeyToken=89b483f429c47342, processorArchitecture=MSIL">
@@ -58,8 +60,9 @@
     <Compile Include="Literacy\Convert2.cs" />
     <Compile Include="Literacy\Delegate.cs" />
     <Compile Include="Literacy\ILoadMember.cs" />
-    <Compile Include="Literacy\IMemberMappingAttributre.cs" />
+    <Compile Include="Literacy\IMemberMappingAttribute.cs" />
     <Compile Include="Literacy\Literacy.cs" />
+    <Compile Include="Literacy\MemberMappingAttribute.cs" />
     <Compile Include="Literacy\ObjectProperty.cs" />
     <Compile Include="Literacy\ObjectPropertyCollection.cs" />
     <Compile Include="Literacy\TypeCodes.cs" />
