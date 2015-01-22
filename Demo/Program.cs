@@ -11,8 +11,6 @@ namespace Demo
     {
         static void Main(string[] args)
         {
-            Where<MyClass>(a =>  true == a.sex);
-
             //DemoColumnsAndValues();
             //DemoValues();
             //DemoSqlExpr();
@@ -20,11 +18,12 @@ namespace Demo
             //DemoSet();
             //DemoOrderBy();
             //DemoColumns();
-        }
 
-        class MyClass
-        {
-            public bool sex { get; set; }
+
+            string name = null;
+
+            Where<User>(it => (name == null || it.Name.Contains(name)) && it.ID == 1);
+
         }
 
 
@@ -167,7 +166,7 @@ namespace Demo
             //Console.WriteLine("Expr   : " + expr.Body.ToString());
             //Console.WriteLine();
             var parse = Faller.Create(expr);
-            var sql = parse.ToWhere(OracleSaw.Instance);
+            var sql = parse.ToWhere(SqlServerSaw.Instance);
             Console.WriteLine("Parsed : " + sql);
             if (parse.Parameters.Count > 0)
             {
@@ -211,6 +210,6 @@ namespace Demo
 
         #endregion
 
-        
+
     }
 }

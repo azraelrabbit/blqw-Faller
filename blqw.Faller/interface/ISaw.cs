@@ -26,21 +26,21 @@ namespace blqw
         /// </summary>
         /// <param name="obj">需要追加的参数值</param>
         /// <param name="parameters">参数集合</param>
-        string AddObject(object obj, ICollection<DbParameter> parameters);
+        string AddObject(object obj, IList<DbParameter> parameters);
         /// <summary> 向参数集合中追加一个数字类型的参数,并返回参数名sql表达式
         /// </summary>
         /// <param name="number">需要追加的数字</param>
         /// <param name="parameters">参数集合</param>
-        string AddNumber(IConvertible number, ICollection<DbParameter> parameters);
+        string AddNumber(IConvertible number, IList<DbParameter> parameters);
         /// <summary> 向参数集合中追加一个布尔类型的参数,并返回参数名sql表达式
         /// </summary>
         /// <param name="obj">需要追加的布尔值</param>
         /// <param name="parameters">参数集合</param>
-        string AddBoolean(bool value, ICollection<DbParameter> parameters);
+        string AddBoolean(bool value, IList<DbParameter> parameters);
         /// <summary> 向参数集合中追加当前时间,并返回参数名sql表达式
         /// </summary>
         /// <param name="parameters">参数集合</param>
-        string AddTimeNow(ICollection<DbParameter> parameters);
+        string AddTimeNow(IList<DbParameter> parameters);
         /// <summary> 包装名称,如果名称为关键字,则应该增加转义符
         /// </summary>
         /// <param name="name">等待包装的名称</param>

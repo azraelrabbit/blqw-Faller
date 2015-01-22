@@ -184,19 +184,5 @@ namespace blqw
                     throw new ArgumentOutOfRangeException("field");
             }
         }
-
-        public override string AddBoolean(bool value, ICollection<DbParameter> parameters)
-        {
-            return value ? "1" : "0";
-        }
-
-        public override string AddNumber(IConvertible number, ICollection<DbParameter> parameters)
-        {
-            if (number == null)
-            {
-                throw new ArgumentNullException("number");
-            }
-            return number.ToString();
-        }
     }
 }

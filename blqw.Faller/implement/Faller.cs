@@ -242,7 +242,7 @@ namespace blqw
             throw new Exception();
         }
 
-        public ICollection<DbParameter> Parameters { get; private set; }
+        public IList<DbParameter> Parameters { get; private set; }
 
         #endregion
 
@@ -757,6 +757,7 @@ namespace blqw
         }
         private void Parse(BinaryExpression expr)
         {
+            var paramCount = Parameters.Count;
             //得到 expr.Right 部分的返回值
             Parse(expr.Right);
             //如果右边是布尔值常量
@@ -773,10 +774,29 @@ namespace blqw
             var right = GetSawDust();
             // 解析 expr.Left 部分
             Parse(expr.Left);
+
+            //如果符号两边都是object 且 二元操作符为And或Or,则直接比较
+            if (right.IsObject && _state.DustType >= DustType.Object)
+            {
+                if (expr.NodeType == ExpressionType.Equal)
+                {
+                    var result = object.Equals(_state.Object, right.Value);
+                    Parse(Expression.Constant(result));
+                    return;
+                }
+                else if (expr.NodeType == ExpressionType.NotEqual)
+                {
+                    var result = !object.Equals(_state.Object, right.Value);
+                    Parse(Expression.Constant(result));
+                    return;
+                }
+            }
+
+
             switch (_state.DustType)
             {
                 case DustType.Sql:
-                    _state.Sql = _saw.BinaryOperation(_state.Sql, ConvertBinaryOperator(expr.NodeType), right.ToSql());
+                    _state.Sql = _state.Sql.Length == 0 ? right.ToSql() : _saw.BinaryOperation(_state.Sql, ConvertBinaryOperator(expr.NodeType), right.ToSql());
                     return;
                 case DustType.Number:
                     //如果左右都是 Number常量
@@ -791,12 +811,49 @@ namespace blqw
                     }
                     return;
                 case DustType.Boolean:
-                    //如果左边是布尔值常量,虽然这种写法很操蛋
-                    if ((expr.NodeType == ExpressionType.Equal) != _state.Boolean)
+                    //如果左边是布尔值常量
+                    switch (expr.NodeType)
                     {
-                        _state.Not();
+                        case ExpressionType.Equal: //  true == ? 或者 false == ?
+                            if (_state.Boolean == false)
+                                Parse(UnaryExpression.IsFalse(expr.Right));
+                            else
+                                Parse(UnaryExpression.IsTrue(expr.Right));
+                            break;
+                        case ExpressionType.NotEqual: //  true != ? 或者 false != ?
+                            if (_state.Boolean)
+                                Parse(UnaryExpression.IsFalse(expr.Right));
+                            else
+                                Parse(UnaryExpression.IsTrue(expr.Right));
+                            break;
+                        case ExpressionType.AndAlso: // true && ? 或者 false && ?
+                            if (_state.Boolean)
+                                _state.Sql = right.ToSql();
+                            else
+                            {
+                                _state.Sql = "";
+                                while (Parameters.Count != paramCount)
+                                {
+                                    Parameters.RemoveAt(paramCount);
+                                }
+                            }
+                            break;
+                        case ExpressionType.OrElse: // true || ? 或者 false || ?
+                            if (_state.Boolean == false)
+                                _state.Sql = right.ToSql();
+                            else
+                            {
+                                _state.Sql = "";
+                                while (Parameters.Count != paramCount)
+                                {
+                                    Parameters.RemoveAt(paramCount);
+                                }
+                            }
+                            break;
+                        default:
+                            Throw(expr);
+                            break;
                     }
-                    Parse(UnaryExpression.IsTrue(expr.Right));
                     return;
                 case DustType.DateTime:
                     _state.Sql = _saw.BinaryOperation(AddObject(_state.DateTime), ConvertBinaryOperator(expr.NodeType), right.ToSql());

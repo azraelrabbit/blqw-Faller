@@ -20,7 +20,7 @@ Faller(砍树人)是一个轻量级的表达式树解析框架
 #### 可以灵活处理更多的C#方法 -> 数据库函数,如  
 
     Where(u => u.Birthday.Day == 1);          //EXTRACT(DAY FROM a.BIRTHDAY) = 1  
-    Where(u => u.Name.Trim() == "");          //ltrim(rtrim(a.NAME)) = :auto_p0  
+    Where(u => u.Name.Trim() == "");          //ltrim(rtrim(a.NAME)) = :saw_p0  
     Where(u => string.IsNullOrEmpty(u.Name)); //a.NAME IS NULL OR a.NAME = ''  
 
 #### 可以在表达式树中灵活插入sql表达式  
@@ -54,6 +54,10 @@ public static class UserBLL
 
   
 ## 更新说明  
+#### 2015.01.23
+* 增加一种新处理方式`Where<User>(it => (name == null || it.Name.Contains(name)) && it.ID == 1);`这个表达式,当`name=null`的时候,将忽略第一组条件,将被解释为`ID = @saw_p0` 
+
+
 #### 2014.11.09
 * 修正布尔的可空类型在==true|==false判断下解析错误的问题 感谢网友@不跟随
 
