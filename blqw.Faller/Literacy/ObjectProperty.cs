@@ -23,6 +23,11 @@ namespace blqw
                 Static = set.IsStatic; //属性是否为静态属性
                 IsPublic = set.IsPublic;
             }
+            else if (property.DeclaringType.Name.StartsWith("<>f__AnonymousType")) //匿名类
+            {
+                CanWrite = true;
+                IsPublic = false;
+            }
             if (get != null) //get方法不为空
             {
                 CanRead = true; //属性可读
@@ -32,7 +37,14 @@ namespace blqw
             ID = System.Threading.Interlocked.Increment(ref Literacy.Sequence);
             UID = Guid.NewGuid();
             Init();
-            TypeCodes = TypeInfo.TypeCodes;
+            if (set == null && CanWrite) //匿名类的属性设置特殊处理
+            {
+                Setter = (o, v) => {
+                    var field = ClassType.GetField("<" + Name + ">i__Field", (BindingFlags)(-1));
+                    Setter = Literacy.CreateSetter(field, ClassType);
+                    Setter(o, v);
+                };
+            }
             Attributes = new AttributeCollection(MemberInfo);
             var mapping = Attributes.First<IMemberMappingAttribute>();
             if (mapping != null)
@@ -56,7 +68,6 @@ namespace blqw
             Init();
             ID = System.Threading.Interlocked.Increment(ref Literacy.Sequence);
             UID = Guid.NewGuid();
-            TypeCodes = TypeInfo.TypeCodes;
             AutoField = (field.Name[0] == '<') || field.Name.Contains("<");
             Attributes = new AttributeCollection(MemberInfo);
             var mapping = Attributes.First<IMemberMappingAttribute>();
@@ -67,10 +78,6 @@ namespace blqw
         }
 
         #region 只读属性
-
-        /// <summary> 属性/字段的类型信息
-        /// </summary>
-        public TypeInfo TypeInfo { get; private set; }
 
         /// <summary> 属性/字段信息
         /// </summary>
@@ -228,14 +235,14 @@ namespace blqw
         /// <summary> 初始化
         /// </summary>
         private void Init()
-        { 
+        {
             Name = MemberInfo.Name;
             ClassType = MemberInfo.DeclaringType;
-            TypeInfo = TypesHelper.GetTypeInfo(OriginalType);
-            if (TypeInfo.IsNullable)
+            var nullable = System.Nullable.GetUnderlyingType(OriginalType);
+            if (nullable != null)
             {
                 Nullable = true;
-                MemberType = TypeInfo.NullableUnderlyingType.Type;
+                MemberType = nullable;
             }
             else
             {
@@ -386,6 +393,7 @@ namespace blqw
             }
         }
 
+
         /// <summary> 成员特性
         /// </summary>
         public readonly AttributeCollection Attributes;
@@ -398,15 +406,11 @@ namespace blqw
         /// </summary>
         public readonly Guid UID;
 
-        /// <summary> 指定对象类型
-        /// </summary>
-        public readonly TypeCodes TypeCodes;
-
         /// <summary> 是自动属性
         /// </summary>
         public readonly bool AutoField;
 
-        /// <summary> 实体的映射名称,通过IMemberMappingAttributre接口指定,如果没有则为null
+        /// <summary> 实体的映射名称
         /// </summary>
         public readonly string MappingName;
     }

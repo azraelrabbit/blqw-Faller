@@ -456,7 +456,7 @@ namespace blqw
         /// </summary>
         /// <param name="obj">需要追加的参数值</param>
         /// <param name="parameters">参数集合</param>
-        public virtual string AddObject(object value, IList<DbParameter> parameters)
+        public virtual string AddObject(object value, ICollection<DbParameter> parameters)
         {
             if (value == null || value is DBNull)
             {
@@ -464,7 +464,7 @@ namespace blqw
             }
             AreNull(parameters, "parameters");
             var p = GetDbParameter(value);
-            var name = "saw_p" + parameters.Count;
+            var name = "auto_p" + parameters.Count;
             p.ParameterName = name;
             parameters.Add(p);
             return ParameterPreFix + name;
@@ -473,7 +473,7 @@ namespace blqw
         /// </summary>
         /// <param name="number">需要追加的数字</param>
         /// <param name="parameters">参数集合</param>
-        public virtual string AddNumber(IConvertible number, IList<DbParameter> parameters)
+        public virtual string AddNumber(IConvertible number, ICollection<DbParameter> parameters)
         {
             AreNull(number, "number");
             return AddObject(number, parameters);
@@ -482,14 +482,14 @@ namespace blqw
         /// </summary>
         /// <param name="obj">需要追加的布尔值</param>
         /// <param name="parameters">参数集合</param>
-        public virtual string AddBoolean(bool value, IList<DbParameter> parameters)
+        public virtual string AddBoolean(bool value, ICollection<DbParameter> parameters)
         {
             return AddObject(value, parameters);
         }
         /// <summary> 向参数集合中追加当前时间,并返回参数名sql表达式
         /// </summary>
         /// <param name="parameters">参数集合</param>
-        public virtual string AddTimeNow(IList<DbParameter> parameters)
+        public virtual string AddTimeNow(ICollection<DbParameter> parameters)
         {
             return TimeNow;
         }
@@ -509,7 +509,14 @@ namespace blqw
         protected virtual DbParameter GetDbParameter(object obj)
         {
             var p = _factory.CreateParameter();
-            p.Value = obj;
+            if (obj is bool)
+            {
+                p.Value = (bool)obj ? 1 : 0;
+            }
+            else
+            {
+                p.Value = obj;
+            }
             return p;
         }
         /// <summary> 别名分隔符 默认 AS ,如 Table AS it

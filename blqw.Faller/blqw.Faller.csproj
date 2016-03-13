@@ -9,8 +9,9 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>blqw</RootNamespace>
     <AssemblyName>blqw.Faller</AssemblyName>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -21,6 +22,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -30,6 +32,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Oracle.ManagedDataAccess, Version=4.121.1.0, Culture=neutral, PublicKeyToken=89b483f429c47342, processorArchitecture=MSIL">
@@ -57,17 +60,59 @@
     <Compile Include="implement\SqlServerSaw.cs" />
     <Compile Include="interface\ISubExpression.cs" />
     <Compile Include="Literacy\AttributeCollection.cs" />
-    <Compile Include="Literacy\Convert2.cs" />
+    <Compile Include="Literacy\Changeable.cs" />
+    <Compile Include="Literacy\Convert3\Cache\TypeCache.cs" />
+    <Compile Include="Literacy\Convert3\Cache\TypeCacheItem.cs" />
+    <Compile Include="Literacy\Convert3\Convert3.cs" />
+    <Compile Include="Literacy\Convert3\Converts\CArray.cs" />
+    <Compile Include="Literacy\Convert3\Converts\CBoolean.cs" />
+    <Compile Include="Literacy\Convert3\Converts\CByte.cs" />
+    <Compile Include="Literacy\Convert3\Converts\CBytes.cs" />
+    <Compile Include="Literacy\Convert3\Converts\CChar.cs" />
+    <Compile Include="Literacy\Convert3\Converts\CDataTable.cs" />
+    <Compile Include="Literacy\Convert3\Converts\CDateTime.cs" />
+    <Compile Include="Literacy\Convert3\Converts\CDecimal.cs" />
+    <Compile Include="Literacy\Convert3\Converts\CDouble.cs" />
+    <Compile Include="Literacy\Convert3\Converts\CEnum.cs" />
+    <Compile Include="Literacy\Convert3\Converts\CGuid.cs" />
+    <Compile Include="Literacy\Convert3\Converts\CIDictionary.cs" />
+    <Compile Include="Literacy\Convert3\Converts\CIList.cs" />
+    <Compile Include="Literacy\Convert3\Converts\CInt16.cs" />
+    <Compile Include="Literacy\Convert3\Converts\CInt32.cs" />
+    <Compile Include="Literacy\Convert3\Converts\CInt64.cs" />
+    <Compile Include="Literacy\Convert3\Converts\CIntPtr.cs" />
+    <Compile Include="Literacy\Convert3\Converts\CNameValueCollection.cs" />
+    <Compile Include="Literacy\Convert3\Converts\CNullable.cs" />
+    <Compile Include="Literacy\Convert3\Converts\CObject.cs" />
+    <Compile Include="Literacy\Convert3\Converts\CSByte.cs" />
+    <Compile Include="Literacy\Convert3\Converts\CSingle.cs" />
+    <Compile Include="Literacy\Convert3\Converts\CString.cs" />
+    <Compile Include="Literacy\Convert3\Converts\CTimeSpan.cs" />
+    <Compile Include="Literacy\Convert3\Converts\CType.cs" />
+    <Compile Include="Literacy\Convert3\Converts\CUInt16.cs" />
+    <Compile Include="Literacy\Convert3\Converts\CUInt32.cs" />
+    <Compile Include="Literacy\Convert3\Converts\CUInt64.cs" />
+    <Compile Include="Literacy\Convert3\Converts\CUIntPtr.cs" />
+    <Compile Include="Literacy\Convert3\Converts\CUri.cs" />
+    <Compile Include="Literacy\Convert3\Dynamic\DynamicDataRow.cs" />
+    <Compile Include="Literacy\Convert3\Dynamic\DynamicDictionary.cs" />
+    <Compile Include="Literacy\Convert3\Dynamic\DynamicList.cs" />
+    <Compile Include="Literacy\Convert3\Dynamic\DynamicNameValueCollection.cs" />
+    <Compile Include="Literacy\Convert3\Dynamic\DynamicSystemObject.cs" />
+    <Compile Include="Literacy\Convert3\IConvertor.cs" />
+    <Compile Include="Literacy\Convert3\PrivateConverts\AdvancedConvertor.cs" />
+    <Compile Include="Literacy\Convert3\PrivateConverts\BaseConvertor.cs" />
+    <Compile Include="Literacy\Convert3\PrivateConverts\GenericConvertorFactory.cs" />
+    <Compile Include="Literacy\Convert3\PrivateConverts\LiskovConvertor.cs" />
+    <Compile Include="Literacy\Convert3\PrivateConverts\SystemTypeConvertor.cs" />
     <Compile Include="Literacy\Delegate.cs" />
     <Compile Include="Literacy\ILoadMember.cs" />
     <Compile Include="Literacy\IMemberMappingAttribute.cs" />
     <Compile Include="Literacy\Literacy.cs" />
     <Compile Include="Literacy\MemberMappingAttribute.cs" />
+    <Compile Include="Literacy\ObjectMap.cs" />
     <Compile Include="Literacy\ObjectProperty.cs" />
     <Compile Include="Literacy\ObjectPropertyCollection.cs" />
-    <Compile Include="Literacy\TypeCodes.cs" />
-    <Compile Include="Literacy\TypeInfo.cs" />
-    <Compile Include="Literacy\TypesHelper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="argument\SawDust.cs" />
     <Compile Include="implement\Faller.cs" />

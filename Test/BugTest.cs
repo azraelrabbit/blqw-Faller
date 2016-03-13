@@ -14,33 +14,33 @@ namespace Test
         void Where(string expected, Expression<Func<User, bool>> expr)
         {
             var parse = Faller.Create(expr);
-            var sql = parse.ToWhere(OracleSaw.Instance);
+            var sql = parse.ToWhere(new TestSaw());
             //parse.Parameters  //解析过程中得到的参数
             Assert.AreEqual(expected, sql);
         }
         void OrderBy(string expected, Expression<Func<User, object>> expr, bool asc)
         {
-            var sql = Faller.Create(expr).ToOrderBy(OracleSaw.Instance, asc);
+            var sql = Faller.Create(expr).ToOrderBy(new TestSaw(), asc);
             Assert.AreEqual(expected, sql);
         }
         void Set(string expected, Expression<Func<User>> expr)
         {
-            var sql = Faller.Create(expr).ToSets(OracleSaw.Instance);
+            var sql = Faller.Create(expr).ToSets(new TestSaw());
             Assert.AreEqual(expected, sql);
         }
         void Columns(string expected, Expression<Func<User, object>> expr)
         {
-            var sql = Faller.Create(expr).ToSelectColumns(OracleSaw.Instance);
+            var sql = Faller.Create(expr).ToSelectColumns(new TestSaw());
             Assert.AreEqual(expected, sql);
         }
         void Values(string expected, Expression<Func<User, object>> expr)
         {
-            var sql = Faller.Create(expr).ToValues(OracleSaw.Instance);
+            var sql = Faller.Create(expr).ToValues(new TestSaw());
             Assert.AreEqual(expected, sql);
         }
         void ColumnsAndValues(string expected1, string expected2, Expression<Func<User, object>> expr)
         {
-            var sql = Faller.Create(expr).ToColumnsAndValues(OracleSaw.Instance);
+            var sql = Faller.Create(expr).ToColumnsAndValues(new TestSaw());
             Assert.AreEqual(expected1, sql.Key);
             Assert.AreEqual(expected2, sql.Value);
         }

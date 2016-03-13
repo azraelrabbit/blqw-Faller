@@ -242,7 +242,7 @@ namespace blqw
             throw new Exception();
         }
 
-        public IList<DbParameter> Parameters { get; private set; }
+        public ICollection<DbParameter> Parameters { get; private set; }
 
         #endregion
 
@@ -300,7 +300,7 @@ namespace blqw
                 _faller = faller;
             }
             private bool _unaryNot;
-            private bool _isParameter;
+            private Type _parameterType;
             /// <summary> 验证当前状态
             /// </summary>
             /// <param name="type"></param>
@@ -335,7 +335,7 @@ namespace blqw
                 {
                     throw new OutOfMemoryException("表达式过于复杂");
                 }
-                DustType = blqw.DustType.Undefined;
+                DustType = DustType.Undefined;
             }
 
             /// <summary> 减少递归层数
@@ -366,13 +366,18 @@ namespace blqw
             }
 
 
-            public bool IsParameter
+            public bool IsParameter { get { return _parameterType != null; } }
+
+            public Type ParameterType 
             {
-                get { return _isParameter; }
+                get { return _parameterType; }
                 set
                 {
-                    Check(blqw.DustType.Sql);
-                    _isParameter = value;
+                    if (value != null)
+                    {
+                        Check(DustType.Sql);
+                    }
+                    _parameterType = value;
                 }
             }
 
@@ -393,13 +398,13 @@ namespace blqw
             {
                 get
                 {
-                    Check(blqw.DustType.Sql);
+                    Check(DustType.Sql);
                     return _sql;
                 }
                 set
                 {
-                    if (_isParameter) _isParameter = false;
-                    DustType = blqw.DustType.Sql;
+                    _parameterType = null;
+                    DustType = DustType.Sql;
                     _sql = value;
                 }
             }
@@ -438,7 +443,7 @@ namespace blqw
                 }
                 set
                 {
-                    if (_isParameter) _isParameter = false;
+                    _parameterType = null;
                     _object = null;
                     var conv = value as IConvertible;
                     if (conv != null)
@@ -512,13 +517,13 @@ namespace blqw
             {
                 get
                 {
-                    Check(blqw.DustType.Number);
+                    Check(DustType.Number);
                     return _number;
                 }
                 set
                 {
-                    if (_isParameter) _isParameter = false;
-                    DustType = blqw.DustType.Number;
+                    _parameterType = null;
+                    DustType = DustType.Number;
                     _number = value;
                 }
             }
@@ -527,13 +532,13 @@ namespace blqw
             {
                 get
                 {
-                    Check(blqw.DustType.Array);
+                    Check(DustType.Array);
                     return _array;
                 }
                 set
                 {
-                    if (_isParameter) _isParameter = false;
-                    DustType = blqw.DustType.Array;
+                    _parameterType = null;
+                    DustType = DustType.Array;
                     _array = value;
                 }
             }
@@ -542,13 +547,13 @@ namespace blqw
             {
                 get
                 {
-                    Check(blqw.DustType.Boolean);
+                    Check(DustType.Boolean);
                     return _boolean;
                 }
                 set
                 {
-                    if (_isParameter) _isParameter = false;
-                    DustType = blqw.DustType.Boolean;
+                    _parameterType = null;
+                    DustType = DustType.Boolean;
                     _boolean = value;
                 }
             }
@@ -557,13 +562,13 @@ namespace blqw
             {
                 get
                 {
-                    Check(blqw.DustType.DateTime);
+                    Check(DustType.DateTime);
                     return _datetime;
                 }
                 set
                 {
-                    if (_isParameter) _isParameter = false;
-                    DustType = blqw.DustType.DateTime;
+                    _parameterType = null;
+                    DustType = DustType.DateTime;
                     _datetime = value;
                 }
             }
@@ -572,13 +577,13 @@ namespace blqw
             {
                 get
                 {
-                    Check(blqw.DustType.Binary);
+                    Check(DustType.Binary);
                     return _binary;
                 }
                 set
                 {
-                    if (_isParameter) _isParameter = false;
-                    DustType = blqw.DustType.Binary;
+                    _parameterType = null;
+                    DustType = DustType.Binary;
                     _binary = value;
                 }
             }
@@ -587,13 +592,13 @@ namespace blqw
             {
                 get
                 {
-                    Check(blqw.DustType.String);
+                    Check(DustType.String);
                     return _string;
                 }
                 set
                 {
-                    if (_isParameter) _isParameter = false;
-                    DustType = blqw.DustType.String;
+                    _parameterType = null;
+                    DustType = DustType.String;
                     _string = value;
                 }
             }
@@ -602,13 +607,13 @@ namespace blqw
             {
                 get
                 {
-                    Check(blqw.DustType.SubExpression);
+                    Check(DustType.SubExpression);
                     return _subExpression;
                 }
                 set
                 {
-                    if (_isParameter) _isParameter = false;
-                    DustType = blqw.DustType.SubExpression;
+                    _parameterType = null;
+                    DustType = DustType.SubExpression;
                     _subExpression = value;
                 }
             }
@@ -757,7 +762,6 @@ namespace blqw
         }
         private void Parse(BinaryExpression expr)
         {
-            var paramCount = Parameters.Count;
             //得到 expr.Right 部分的返回值
             Parse(expr.Right);
             //如果右边是布尔值常量
@@ -774,29 +778,14 @@ namespace blqw
             var right = GetSawDust();
             // 解析 expr.Left 部分
             Parse(expr.Left);
-
-            //如果符号两边都是object 且 二元操作符为And或Or,则直接比较
-            if (right.IsObject && _state.DustType >= DustType.Object)
-            {
-                if (expr.NodeType == ExpressionType.Equal)
-                {
-                    var result = object.Equals(_state.Object, right.Value);
-                    Parse(Expression.Constant(result));
-                    return;
-                }
-                else if (expr.NodeType == ExpressionType.NotEqual)
-                {
-                    var result = !object.Equals(_state.Object, right.Value);
-                    Parse(Expression.Constant(result));
-                    return;
-                }
-            }
-
-
             switch (_state.DustType)
             {
                 case DustType.Sql:
-                    _state.Sql = _state.Sql.Length == 0 ? right.ToSql() : _saw.BinaryOperation(_state.Sql, ConvertBinaryOperator(expr.NodeType), right.ToSql());
+                    if (_state.IsParameter && _state.ParameterType == typeof(bool))
+                    {
+                        Parse(UnaryExpression.IsTrue(expr.Left));
+                    }
+                    _state.Sql = _saw.BinaryOperation(_state.Sql, ConvertBinaryOperator(expr.NodeType), right.ToSql());
                     return;
                 case DustType.Number:
                     //如果左右都是 Number常量
@@ -811,49 +800,12 @@ namespace blqw
                     }
                     return;
                 case DustType.Boolean:
-                    //如果左边是布尔值常量
-                    switch (expr.NodeType)
+                    //如果左边是布尔值常量,虽然这种写法很操蛋
+                    if ((expr.NodeType == ExpressionType.Equal) != _state.Boolean)
                     {
-                        case ExpressionType.Equal: //  true == ? 或者 false == ?
-                            if (_state.Boolean == false)
-                                Parse(UnaryExpression.IsFalse(expr.Right));
-                            else
-                                Parse(UnaryExpression.IsTrue(expr.Right));
-                            break;
-                        case ExpressionType.NotEqual: //  true != ? 或者 false != ?
-                            if (_state.Boolean)
-                                Parse(UnaryExpression.IsFalse(expr.Right));
-                            else
-                                Parse(UnaryExpression.IsTrue(expr.Right));
-                            break;
-                        case ExpressionType.AndAlso: // true && ? 或者 false && ?
-                            if (_state.Boolean)
-                                _state.Sql = right.ToSql();
-                            else
-                            {
-                                _state.Sql = "";
-                                while (Parameters.Count != paramCount)
-                                {
-                                    Parameters.RemoveAt(paramCount);
-                                }
-                            }
-                            break;
-                        case ExpressionType.OrElse: // true || ? 或者 false || ?
-                            if (_state.Boolean == false)
-                                _state.Sql = right.ToSql();
-                            else
-                            {
-                                _state.Sql = "";
-                                while (Parameters.Count != paramCount)
-                                {
-                                    Parameters.RemoveAt(paramCount);
-                                }
-                            }
-                            break;
-                        default:
-                            Throw(expr);
-                            break;
+                        _state.Not();
                     }
+                    Parse(UnaryExpression.IsTrue(expr.Right));
                     return;
                 case DustType.DateTime:
                     _state.Sql = _saw.BinaryOperation(AddObject(_state.DateTime), ConvertBinaryOperator(expr.NodeType), right.ToSql());
@@ -1039,7 +991,18 @@ namespace blqw
                 }
             }
             _state.Sql = _saw.GetColumn(GetAlias(index), member);
-            _state.IsParameter = true;
+            if (member.MemberType == MemberTypes.Field)
+            {
+                _state.ParameterType = ((FieldInfo)member).FieldType;
+            }
+            else if (member.MemberType == MemberTypes.Property)
+            {
+                _state.ParameterType = ((PropertyInfo)member).PropertyType;
+            }
+            if (_state.ParameterType!=null && _state.ParameterType.IsValueType)
+            {
+                _state.ParameterType = Nullable.GetUnderlyingType(_state.ParameterType) ?? _state.ParameterType;
+            }
             //if (_entry == WHERE)
             //{
             //    Type type = (member.MemberType == MemberTypes.Property) ? ((PropertyInfo)member).PropertyType : ((FieldInfo)member).FieldType;
@@ -1299,7 +1262,7 @@ namespace blqw
         {
             if (_state.DustType != type)
             {
-                if (type != blqw.DustType.Object)
+                if (type != DustType.Object)
                 {
                     Throw();
                 }
@@ -1357,7 +1320,7 @@ namespace blqw
             if (call)
             {
                 var method = expr.Method;
-                if (subexpr != null && !TypesHelper.IsChild(typeof(ISubExpression), method.ReturnType))
+                if (subexpr != null && !typeof(ISubExpression).IsAssignableFrom(method.ReturnType))
                 {
                     _state.Sql = subexpr.GetSqlString(args);
                 }

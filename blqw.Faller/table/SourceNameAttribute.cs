@@ -6,7 +6,7 @@ namespace blqw
     /// <summary> 
     /// </summary>
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Property, Inherited = false, AllowMultiple = false)]
-    public class SourceNameAttribute : Attribute
+    public class SourceNameAttribute : Attribute, IMemberMappingAttribute
     {
 
         public string Name { get; set; }

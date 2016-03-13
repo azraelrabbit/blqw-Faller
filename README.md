@@ -54,6 +54,14 @@ public static class UserBLL
 
   
 ## 更新说明  
+#### 2015.08.19  
+* 布尔值在组合条件中的bug  
+
+#### 2015.06.12
+* 全面更新至4.5框架,不在维护老的框架了  
+* 兼容Convert3转换方案
+
+
 #### 2015.01.23
 * 增加一种新处理方式`Where<User>(it => (name == null || it.Name.Contains(name)) && it.ID == 1);`这个表达式,当`name=null`的时候,将忽略第一组条件,将被解释为`ID = @saw_p0` 
 

@@ -11,30 +11,29 @@
         /// <summary> sql语句
         /// </summary>
         Sql = 1,
-        /// <summary> 子表达式 
-        /// </summary>
-        SubExpression = 2,
-        /*大于99的都是object类型*/
         /// <summary> 未知类型
         /// </summary>
-        Object = 100,
+        Object = 2,
         /// <summary> 数字
         /// </summary>
-        Number = 101,
+        Number = 3,
         /// <summary> 数组
         /// </summary>
-        Array = 102,
+        Array = 4,
         /// <summary> 布尔值
         /// </summary>
-        Boolean = 103,
+        Boolean = 5,
         /// <summary> 时间
         /// </summary>
-        DateTime = 104,
+        DateTime = 6,
         /// <summary> 二进制
         /// </summary>
-        Binary = 105,
+        Binary = 7,
         /// <summary> 字符串
         /// </summary>
-        String = 106,
+        String = 8,
+        /// <summary> 子表达式 
+        /// </summary>
+        SubExpression = 9,
     }
 }

@@ -189,21 +189,5 @@ namespace blqw
             }
             return name;
         }
-
-        public override string AddBoolean(bool value, IList<DbParameter> parameters)
-        {
-            return value ? "1" : "0";
-        }
-
-        public override string AddNumber(IConvertible number, IList<DbParameter> parameters)
-        {
-            if (number == null)
-            {
-                throw new ArgumentNullException("number");
-            }
-            return number.ToString();
-        }
-
-        
     }
 }

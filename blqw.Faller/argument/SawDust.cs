@@ -94,7 +94,7 @@ namespace blqw
         {
             get
             {
-                return Type >= DustType.Object;
+                return Type < 0 || Type > DustType.Sql;
             }
         }
 

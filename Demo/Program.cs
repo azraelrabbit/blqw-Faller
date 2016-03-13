@@ -19,6 +19,15 @@ namespace Demo
             //DemoOrderBy();
             //DemoColumns();
 
+            var list = new List<User>();
+            list.Add(new User { ID = 1 });
+            list.Add(new User { ID = 2 });
+            list.Add(new User { ID = 3 });
+            list.Add(new User { ID = 4 });
+
+
+            Where<User>(it => list.Select(a=>a.ID).ToArray().Contains(it.ID));
+
 
             string name = null;
 

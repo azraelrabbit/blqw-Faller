@@ -17,6 +17,11 @@ namespace blqw
         private static readonly Dictionary<MethodInfo, LiteracyCaller> Callers =
             new Dictionary<MethodInfo, LiteracyCaller>(255);
 
+        /// <summary> 方法缓存
+        /// </summary>
+        private static readonly TypeCache<Tuple<Literacy, Literacy>> Literacies =
+            new TypeCache<Tuple<Literacy, Literacy>>();
+
         /// <summary> 获取缓存
         /// </summary>
         /// <param name="type">反射对象类型</param>
@@ -29,8 +34,46 @@ namespace blqw
             {
                 throw new ArgumentNullException("type");
             }
-            var info = TypesHelper.GetTypeInfo(type);
-            return ignoreCase ? info.IgnoreCaseLiteracy : info.Literacy;
+            var lit = Literacies.Get(type);
+            if (lit != null)
+            {
+                return ignoreCase ? lit.Item1 : lit.Item2;
+            }
+            lock (Literacies)
+            {
+                lit = Literacies.Get(type);
+                if (lit == null)
+                {
+                    lit = new Tuple<Literacy, Literacy>(new Literacy(type, ignoreCase), new Literacy(type, ignoreCase));
+                    Literacies.Set(type, lit);
+                }
+            }
+            return ignoreCase ? lit.Item1 : lit.Item2;
+        }
+
+        /// <summary> 获取缓存
+        /// </summary>
+        /// <typeparam name="T">反射对象类型</typeparam>
+        /// <param name="ignoreCase">属性/字段名称是否忽略大小写</param>
+        /// <exception cref="ArgumentException">缓存中的对象类型与参数type不一致</exception>
+        /// <exception cref="ArgumentNullException">参数type为null</exception>
+        public static Literacy Cache<T>(bool ignoreCase)
+        {
+            var lit = Literacies.Get<T>();
+            if (lit != null)
+            {
+                return ignoreCase ? lit.Item1 : lit.Item2;
+            }
+            lock (Literacies)
+            {
+                lit = Literacies.Get<T>();
+                if (lit == null)
+                {
+                    lit = new Tuple<Literacy, Literacy>(new Literacy(typeof(T), ignoreCase), new Literacy(typeof(T), ignoreCase));
+                    Literacies.Set(typeof(T), lit);
+                }
+            }
+            return ignoreCase ? lit.Item1 : lit.Item2;
         }
 
         /// <summary> 获取方法缓存
@@ -108,14 +151,6 @@ namespace blqw
         /// </summary>
         public readonly Guid UID;
 
-        /// <summary> 指定对象类型
-        /// </summary>
-        public readonly TypeCodes TypeCodes;
-
-        /// <summary> TypeInfo
-        /// </summary>
-        public TypeInfo TypeInfo { get; private set; }
-
         #region 私有的
 
         /// <summary> 对象无参构造器
@@ -127,7 +162,31 @@ namespace blqw
         /// <param name="args"></param>
         private object PreNewObject(params object[] args)
         {
-            _CallNewObject = CreateNewObject(Type) ?? ErrorNewObject;
+            var call = CreateNewObject(Type);
+            if (call != null)
+            {
+                _ctorArgs = new object[0];
+                _CallNewObject = call;
+                return call();
+            }
+            if (Type.Name.StartsWith("<>f__AnonymousType")) //匿名类
+            {
+                var ctor = Type.GetConstructors()[0];
+                if (ctor != null)
+                {
+                    var ps = ctor.GetParameters();
+                    args = new object[ps.Length];
+                    for (int i = 0; i < ps.Length; i++)
+                    {
+                        args[i] = Convert3.GetDefaultValue(ps[i].ParameterType);
+                    }
+                    call = CreateNewObject(ctor);
+                    _ctorArgs = args;
+                    return call(args);
+                }
+            }
+            _ctorArgs = new object[0];
+            _CallNewObject = ErrorNewObject;
             return _CallNewObject();
         }
 
@@ -153,19 +212,13 @@ namespace blqw
         /// <param name="type">需快速访问的类型</param>
         /// <param name="ignoreCase">是否区分大小写(不区分大小写时应保证类中没有同名的(仅大小写不同的)属性或字段)</param>
         public Literacy(Type type, bool ignoreCase)
-            : this(TypesHelper.GetTypeInfo(type), ignoreCase)
         {
-        }
-
-        internal Literacy(TypeInfo info, bool ignoreCase)
-        {
-            if (info == null)
+            if (type == null)
             {
-                throw new ArgumentNullException("info");
+                throw new ArgumentNullException("type");
             }
 
-            TypeInfo = info;
-            Type = info.Type;
+            Type = type;
             _CallNewObject = PreNewObject;
             Property = new ObjectPropertyCollection(ignoreCase);
             foreach (var p in Type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
@@ -181,16 +234,15 @@ namespace blqw
             }
             ID = Interlocked.Increment(ref Sequence);
             UID = Guid.NewGuid();
-            TypeCodes = info.TypeCodes;
         }
 
         #endregion
-
+        private object[] _ctorArgs;
         /// <summary> 调用对象的无参构造函数,新建对象
         /// </summary>
         public object NewObject()
         {
-            return _CallNewObject();
+            return _CallNewObject(_ctorArgs);
         }
 
         #region ILoadMember
@@ -318,7 +370,7 @@ namespace blqw
             }
             foreach (var p in Type.GetProperties(bf))
             {
-                if (p.GetIndexParameters().Length == 0)
+                if (p.GetIndexParameters().Length == 0 && Property.ContainsKey(p.Name) == false)
                 {
                     Property.Add(new ObjectProperty(p));
                 }
@@ -432,7 +484,7 @@ namespace blqw
             {
                 return null;
             }
-            var dm = new DynamicMethod("", TypeObject, TypesObject, owner ?? prop.ReflectedType, true);
+            var dm = new DynamicMethod("", TypeObject, TypesObject, owner ?? GetOwnerType(prop), true);
             var il = dm.GetILGenerator();
             var met = prop.GetGetMethod(true);
             if (met == null)
@@ -472,7 +524,7 @@ namespace blqw
             {
                 return null;
             }
-            var dm = new DynamicMethod("", TypeObject, TypesObject, owner ?? field.ReflectedType, true);
+            var dm = new DynamicMethod("", TypeObject, TypesObject, owner ?? GetOwnerType(field), true);
             var il = dm.GetILGenerator();
             if (field.IsStatic)
             {
@@ -504,7 +556,7 @@ namespace blqw
             {
                 throw new NotSupportedException("不支持值类型成员的赋值操作");
             }
-            var dm = new DynamicMethod("", null, Types2Object, owner ?? prop.ReflectedType, true);
+            var dm = new DynamicMethod("", null, Types2Object, owner ?? GetOwnerType(prop), true);
             var set = prop.GetSetMethod(true);
             if (set == null)
             {
@@ -524,7 +576,14 @@ namespace blqw
                 il.Emit(OpCodes.Castclass, prop.DeclaringType);
                 il.Emit(OpCodes.Ldarg_1);
                 EmitCast(il, prop.PropertyType, false);
-                il.Emit(OpCodes.Callvirt, set);
+                if (prop.DeclaringType.IsValueType)
+                {
+                    il.Emit(OpCodes.Call, set);
+                }
+                else
+                {
+                    il.Emit(OpCodes.Callvirt, set);
+                }
             }
             il.Emit(OpCodes.Ret);
 
@@ -543,7 +602,7 @@ namespace blqw
             {
                 return null;
             }
-            var dm = new DynamicMethod("", null, Types2Object, owner ?? field.ReflectedType, true);
+            var dm = new DynamicMethod("", null, Types2Object, owner ?? GetOwnerType(field), true);
             var il = dm.GetILGenerator();
 
             if (field.IsStatic)
@@ -574,7 +633,7 @@ namespace blqw
                 return null;
             }
 
-            var dm = new DynamicMethod("", TypeObject, TypesObjectObjects, owner ?? method.DeclaringType, true);
+            var dm = new DynamicMethod("", TypeObject, TypesObjectObjects, owner ?? GetOwnerType(method), true);
 
             var il = dm.GetILGenerator();
 
@@ -695,6 +754,21 @@ namespace blqw
             }
         }
 
+        /// <summary> 如果是数组,则获取数组中元素的类型
+        /// </summary>
+        /// <param name="member"></param>
+        /// <returns></returns>
+        private static Type GetOwnerType(MemberInfo member)
+        {
+            if (member.ReflectedType.IsArray && member.ReflectedType.HasElementType)
+            {
+                return member.ReflectedType.GetElementType();
+            }
+            else
+            {
+                return member.ReflectedType;
+            }
+        }
         #endregion
     }
 }
